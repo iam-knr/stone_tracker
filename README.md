@@ -1,12 +1,12 @@
 # Stone Tracker
 
-A mobile-friendly, Google-Material-styled project & task tracker web app backed by Google Sheets as the database.
+A mobile-friendly, Google-Material-styled project & task tracker web app backed by Supabase (Postgres) as the database.
 
 ## Stack
 - Frontend: React (Vite) + Tailwind CSS, Material Design-inspired UI, fully responsive/mobile-first, PWA-ready
-- Backend: Node.js + Express, googleapis (Google Sheets API), JWT auth, bcrypt password hashing
-- Data store: Google Sheets (Projects, Tasks, Users tabs)
-- Deployment target: GitHub -> Hostinger (Node.js Web App / VPS)
+- Backend: Node.js + Express, @supabase/supabase-js, JWT auth, bcrypt password hashing
+- Data store: Supabase Postgres (projects, tasks, users tables)
+- Deployment target: GitHub -> Vercel
 
 ## Auth model
 - Admin account is seeded manually (see backend/.env.example: ADMIN_USERNAME / ADMIN_PASSWORD_HASH)
@@ -14,25 +14,27 @@ A mobile-friendly, Google-Material-styled project & task tracker web app backed 
 - Regular users CANNOT reset or change their own password — only admin can update/reset a user's password
 - JWT-based sessions, role field (admin / user) controls access to Admin routes
 
-## Google Sheet structure required
-Create one Google Sheet named "Stone Tracker DB" with 3 tabs:
+## Supabase schema
+Run `supabase/schema.sql` once in your Supabase project's SQL Editor. It creates three tables:
 
-**Users**
+**users**
 | id | username | passwordHash | role | createdAt |
 
-**Projects**
+**projects**
 | id | name | client | startDate | deadline | status |
 
-**Tasks**
+**tasks**
 | id | projectId | taskName | description | assignee | taskOwner | priority | status | startDate | dueDate | notes |
+
+The backend talks to Supabase using the service_role key (server-side only), so Row Level Security stays enabled and locked down from any other client.
 
 ## Setup
 
-### 1. Google Cloud
-1. Create a Google Cloud project, enable "Google Sheets API".
-2. Create a Service Account, generate a JSON key.
-3. Share your "Stone Tracker DB" sheet with the service account email (Editor access).
-4. Put the JSON key contents into backend/.env as GOOGLE_SERVICE_ACCOUNT_KEY (base64 or path).
+### 1. Supabase
+1. Create a new project at supabase.com.
+2. Open the SQL Editor and run `supabase/schema.sql`.
+3. Go to Project Settings > API and copy the Project URL and the `service_role` secret key.
+4. Put these into `backend/.env` as `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ### 2. Backend
 ```
@@ -49,9 +51,9 @@ npm install
 npm run dev
 ```
 
-### 4. Deploy
-- Push this repo to a new GitHub repository.
-- In Hostinger hPanel > Websites, create the subdomain (e.g. tracker.yourdomain.com).
-- Use Hostinger's "Node.js Web App" or GitHub auto-deploy to point to this repo.
-- Set the same environment variables in Hostinger's Node.js app config.
-- Build frontend (`npm run build`) and serve the `dist/` folder via backend static middleware or Hostinger static hosting.
+### 4. Deploy to Vercel
+1. Push this repo to GitHub (already done if you're reading this there).
+2. In Vercel, "Add New... > Project" and import this GitHub repo.
+3. Vercel will pick up `vercel.json` at the repo root, which builds the Express backend as a serverless function (routed under `/api/*`) and the Vite frontend as a static site.
+4. In the Vercel project's Settings > Environment Variables, set: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`.
+5. Deploy. Every push to `main` will auto-redeploy.
