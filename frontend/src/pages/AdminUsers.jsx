@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api.js';
 import TopBar from '../components/TopBar.jsx';
+import Spinner from '../components/Spinner.jsx';
 
 const ROLE_OPTIONS = [
   { value: 'task_assignee', label: 'Task Assignee' },
@@ -14,7 +15,8 @@ function roleLabel(role) {
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ username: '', password: '', role: 'task_assignee' });
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ username: '', password: '', email: '', role: 'task_assignee' });
   const [resetId, setResetId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,14 +25,14 @@ export default function AdminUsers() {
     const { data } = await api.get('/users');
     setUsers(data);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, []);
 
   async function handleCreate(e) {
     e.preventDefault();
     setError('');
     try {
       await api.post('/users', form);
-      setForm({ username: '', password: '', role: 'task_assignee' });
+      setForm({ username: '', password: '', email: '', role: 'task_assignee' });
       load();
     } catch (err) {
       setError(err?.response?.data?.error || 'Failed to create user');
@@ -63,6 +65,9 @@ export default function AdminUsers() {
           <div className="flex flex-col sm:flex-row gap-3 mb-3">
             <input required placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             <input required placeholder="Temp Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 mb-3">
+            <input type="email" placeholder="Email (for password reset)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
               {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
@@ -70,11 +75,15 @@ export default function AdminUsers() {
           <button className="bg-google-blue text-white px-4 py-2 rounded-full text-sm font-medium">Add User</button>
         </form>
 
-        <div className="bg-white rounded-xl shadow-card divide-y">
+        {loading ? (
+          <div className="flex justify-center py-12 text-google-blue"><Spinner className="text-2xl" /></div>
+        ) : (
+        <div className="bg-white rounded-xl shadow-card divide-y animate-fade-in">
           {users.map((u) => (
             <div key={u.id} className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <p className="text-sm font-medium">{u.username} <span className="text-xs text-gray-400">({roleLabel(u.role)})</span></p>
+                {u.email && <p className="text-xs text-gray-400">{u.email}</p>}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <select value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1">
@@ -94,6 +103,7 @@ export default function AdminUsers() {
           ))}
           {users.length === 0 && <p className="text-gray-400 text-sm text-center p-4">No users yet.</p>}
         </div>
+        )}
       </div>
     </div>
   );

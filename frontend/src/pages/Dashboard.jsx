@@ -3,12 +3,14 @@ import api from '../api.js';
 import TopBar from '../components/TopBar.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
 import AdminOverview from '../components/AdminOverview.jsx';
+import Spinner from '../components/Spinner.jsx';
 
 export default function Dashboard() {
   const role = localStorage.getItem('st_role');
   const isAdmin = role === 'admin';
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', client: '', startDate: '', deadline: '', status: 'Not Started' });
 
@@ -20,7 +22,7 @@ export default function Dashboard() {
       setTasks(allTasks);
     }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, []);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -35,15 +37,21 @@ export default function Dashboard() {
     <div className="min-h-screen bg-google-grey pb-8">
       <TopBar title="Stone Tracker" onAdd={() => setShowModal(true)} addLabel="+ New Project" />
 
-      {isAdmin && <AdminOverview projects={projects} tasks={tasks} />}
+      {loading ? (
+        <div className="flex justify-center py-16 text-google-blue"><Spinner className="text-2xl" /></div>
+      ) : (
+        <div className="animate-fade-in">
+          {isAdmin && <AdminOverview projects={projects} tasks={tasks} />}
 
-      <div className="max-w-5xl mx-auto p-4">
-        {isAdmin && <p className="text-sm font-medium text-gray-700 mb-2">All projects</p>}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((p) => <ProjectCard key={p.id} project={p} />)}
-          {projects.length === 0 && <p className="text-gray-400 col-span-full text-center mt-10">No projects yet. Tap + New Project to add one.</p>}
+          <div className="max-w-5xl mx-auto p-4">
+            {isAdmin && <p className="text-sm font-medium text-gray-700 mb-2">All projects</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((p) => <ProjectCard key={p.id} project={p} />)}
+              {projects.length === 0 && <p className="text-gray-400 col-span-full text-center mt-10">No projects yet. Tap + New Project to add one.</p>}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-20">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import TopBar from '../components/TopBar.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
+import Spinner from '../components/Spinner.jsx';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
 const EMPTY_FORM = { taskName: '', description: '', assignee: '', taskOwner: '', priority: 'Medium', status: 'To Do', startDate: '', dueDate: '' };
@@ -17,6 +18,7 @@ export default function ProjectBoard() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [transferTaskId, setTransferTaskId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const owners = users.filter((u) => u.role === 'task_owner' || u.role === 'admin');
   const assignees = users.filter((u) => u.role === 'task_assignee' || u.role === 'admin');
@@ -29,7 +31,10 @@ export default function ProjectBoard() {
     const { data } = await api.get('/users/list');
     setUsers(data);
   }
-  useEffect(() => { load(); loadUsers(); }, [id]);
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([load(), loadUsers()]).finally(() => setLoading(false));
+  }, [id]);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -56,7 +61,10 @@ export default function ProjectBoard() {
       <TopBar title="Project Board" onAdd={() => setShowModal(true)} addLabel="+ New Task" />
       <button onClick={() => navigate('/')} className="text-sm text-google-blue px-4 pt-3 inline-block">&larr; Back to projects</button>
 
-      <div className="p-4 flex gap-4 overflow-x-auto">
+      {loading ? (
+        <div className="flex justify-center py-16 text-google-blue"><Spinner className="w-6 h-6 text-2xl" /></div>
+      ) : (
+      <div className="p-4 flex gap-4 overflow-x-auto animate-fade-in">
         {COLUMNS.map((col) => (
           <div key={col} className="min-w-[260px] flex-1">
             <h3 className="text-sm font-medium text-gray-600 mb-2">{col} ({tasks.filter(t => t.status === col).length})</h3>
@@ -99,6 +107,7 @@ export default function ProjectBoard() {
           </div>
         ))}
       </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-20">
