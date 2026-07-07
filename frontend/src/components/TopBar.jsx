@@ -1,3 +1,11 @@
+import { Link } from 'react-router-dom';
+
+const ROLE_LABELS = {
+  admin: 'Super Admin',
+  task_owner: 'Task Owner',
+  task_assignee: 'Task Assignee',
+};
+
 export default function TopBar({ title, onAdd, addLabel }) {
   const role = localStorage.getItem('st_role');
   const username = localStorage.getItem('st_username');
@@ -20,9 +28,9 @@ export default function TopBar({ title, onAdd, addLabel }) {
           </button>
         )}
         {role === 'admin' && (
-          <a href="/admin/users" className="text-sm text-google-blue font-medium hidden sm:block">Manage Users</a>
+          <Link to="/admin/users" className="text-sm text-google-blue font-medium hidden sm:block">Manage Users</Link>
         )}
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700" title={username}>
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700" title={`${username} (${ROLE_LABELS[role] || role})`}>
           {username?.[0]?.toUpperCase()}
         </div>
         <button onClick={logout} className="text-sm text-gray-500 hover:text-google-red">Logout</button>
