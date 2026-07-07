@@ -28,7 +28,7 @@ create table if not exists users (
   id text primary key,
   username text unique not null,
   "passwordHash" text not null,
-  role text default 'user',
+  role text default 'task_assignee',
   "createdAt" timestamptz default now()
 );
 
