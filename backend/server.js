@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,11 +10,64 @@ import userRoutes from './routes/users.js';
 import taskRoutes from './routes/tasks.js';
 
 dotenv.config();
+
+// Fail fast in production if required secrets are missing, rather than
+// limping along and throwing confusing errors deep inside a request handler.
+const REQUIRED_ENV_VARS = [
+  'JWT_SECRET',
+  'ADMIN_USERNAME',
+  'ADMIN_PASSWORD_HASH',
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+];
+const missingEnvVars = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+if (missingEnvVars.length > 0) {
+  console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.use(cors());
-app.use(express.json());
+// Vercel (and most reverse proxies) sit in front of this process, so trust
+// the X-Forwarded-For header for accurate client IPs (used by rate limiting).
+app.set('trust proxy', 1);
+
+app.use(helmet());
+
+// Same-origin in production (frontend and backend share one domain via
+// Vercel service rewrites), so CORS mainly matters for local development
+// and any explicitly allow-listed extra origins.
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    // Allow non-browser/same-origin requests with no Origin header.
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+}));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Brute-force protection on login specifically, plus a looser general API limit.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', loginLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
