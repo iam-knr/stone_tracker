@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ROLE_LABELS = {
   admin: 'Super Admin',
@@ -9,10 +9,11 @@ const ROLE_LABELS = {
 export default function TopBar({ title, onAdd, addLabel }) {
   const role = localStorage.getItem('st_role');
   const username = localStorage.getItem('st_username');
+  const navigate = useNavigate();
 
   function logout() {
     localStorage.clear();
-    window.location.href = '/login';
+    navigate('/login', { replace: true });
   }
 
   return (
