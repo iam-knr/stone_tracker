@@ -28,9 +28,17 @@ create table if not exists users (
   id text primary key,
   username text unique not null,
   "passwordHash" text not null,
+  email text,
   role text default 'task_assignee',
-  "createdAt" timestamptz default now()
+  "createdAt" timestamptz default now(),
+  "resetTokenHash" text,
+  "resetTokenExpiry" timestamptz
 );
+
+-- If you already ran an earlier version of this schema, add the new columns:
+-- alter table users add column if not exists email text;
+-- alter table users add column if not exists "resetTokenHash" text;
+-- alter table users add column if not exists "resetTokenExpiry" timestamptz;
 
 -- Row Level Security: the backend talks to Supabase using the service_role
 -- key (server-side only), which bypasses RLS, so these tables are safe to
