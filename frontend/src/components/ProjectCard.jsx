@@ -12,7 +12,7 @@ export default function ProjectCard({ project }) {
   return (
     <div
       onClick={() => navigate(`/project/${project.id}`)}
-      className="bg-white rounded-xl shadow-card p-4 cursor-pointer hover:shadow-lg transition active:scale-[0.99]"
+      className="bg-white rounded-2xl shadow-card p-4 cursor-pointer hover-lift border border-transparent hover:border-google-blue/10"
     >
       <div className="flex justify-between items-start mb-2">
         <h3 className="font-medium text-gray-800">{project.name}</h3>
@@ -20,10 +20,10 @@ export default function ProjectCard({ project }) {
           {project.status}
         </span>
       </div>
-      <p className="text-sm text-gray-500 mb-2">{project.client}</p>
-      <div className="flex justify-between text-xs text-gray-400">
-        <span>Start: {project.startDate}</span>
-        <span>Due: {project.deadline}</span>
+      <p className="text-sm text-gray-500 mb-3">{project.client}</p>
+      <div className="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
+        <span>Start: {project.startDate || '—'}</span>
+        <span>Due: {project.deadline || '—'}</span>
       </div>
     </div>
   );
