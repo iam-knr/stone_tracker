@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { readSheet, appendRow, updateRowById } from '../services/googleSheets.js';
+import { readSheet, appendRow, updateRowById } from '../services/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();

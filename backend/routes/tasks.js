@@ -1,5 +1,5 @@
 import express from 'express';
-import { readSheet, appendRow, updateRowById } from '../services/googleSheets.js';
+import { readSheet, appendRow, updateRowById } from '../services/supabase.js';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();

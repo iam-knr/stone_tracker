@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { readSheet } from '../services/googleSheets.js';
+import { readSheet } from '../services/supabase.js';
 
 const router = express.Router();
 
