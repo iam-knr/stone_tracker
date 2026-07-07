@@ -4,17 +4,15 @@ import { readSheet, appendRow, updateRowById, deleteRowById } from '../services/
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
-const HEADERS = ['id', 'username', 'passwordHash', 'email', 'role', 'createdAt', 'resetTokenHash', 'resetTokenExpiry'];
 const VALID_ROLES = ['admin', 'task_owner', 'task_assignee'];
 const MIN_PASSWORD_LENGTH = 8;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidPassword(password) {
   return typeof password === 'string' && password.length >= MIN_PASSWORD_LENGTH;
 }
 
 function isValidUsername(username) {
-  // Letters, numbers, dots, underscores, hyphens; 3-32 chars. Keeps things
-  // predictable for display and avoids stray whitespace/control characters.
   return typeof username === 'string' && /^[a-zA-Z0-9._-]{3,32}$/.test(username);
 }
 
@@ -27,6 +25,35 @@ router.get('/list', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('GET /users/list failed:', err);
     res.status(500).json({ error: 'Could not load users.' });
+  }
+});
+
+// Any authenticated (non-admin) user: change their own password. The Super
+// Admin account is env-var based and isn't a row in this table, so it isn't
+// covered here — its password is changed via Vercel env vars.
+router.put('/me/password', verifyToken, async (req, res) => {
+  try {
+    if (req.user?.role === 'admin' && !req.user?.id) {
+      return res.status(400).json({ error: 'Super Admin password is managed via environment variables.' });
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required.' });
+    }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+    }
+    const users = await readSheet('Users');
+    const user = users.find((u) => u.id === req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await updateRowById('Users', 0, user.id, { passwordHash });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PUT /users/me/password failed:', err);
+    res.status(500).json({ error: 'Could not change password.' });
   }
 });
 
@@ -51,7 +78,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     if (!isValidPassword(password)) {
       return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'That does not look like a valid email address.' });
     }
     if (role && !VALID_ROLES.includes(role)) {
@@ -70,7 +97,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
       role: role || 'task_assignee',
       createdAt: new Date().toISOString(),
     };
-    await appendRow('Users', newUser, HEADERS);
+    await appendRow('Users', newUser);
     res.json({ success: true, id: newUser.id });
   } catch (err) {
     console.error('POST /users failed:', err);
@@ -85,7 +112,7 @@ router.put('/:id/role', verifyToken, requireAdmin, async (req, res) => {
     if (!VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
     }
-    await updateRowById('Users', 0, req.params.id, { role }, HEADERS);
+    await updateRowById('Users', 0, req.params.id, { role });
     res.json({ success: true });
   } catch (err) {
     console.error('PUT /users/:id/role failed:', err);
@@ -101,11 +128,55 @@ router.put('/:id/password', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    await updateRowById('Users', 0, req.params.id, { passwordHash }, HEADERS);
+    await updateRowById('Users', 0, req.params.id, { passwordHash });
     res.json({ success: true });
   } catch (err) {
     console.error('PUT /users/:id/password failed:', err);
     res.status(500).json({ error: 'Could not reset password.' });
+  }
+});
+
+// Admin (Super Admin): change a user's email address
+router.put('/:id/email', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (email && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'That does not look like a valid email address.' });
+    }
+    await updateRowById('Users', 0, req.params.id, { email: email || null });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PUT /users/:id/email failed:', err);
+    res.status(500).json({ error: 'Could not update email.' });
+  }
+});
+
+// Admin (Super Admin): bulk-transfer a user's work to another user.
+// Reassigns every task where they're the taskOwner and/or assignee to the
+// target user. This is how you offboard/replace a task owner or assignee
+// without losing task history.
+router.post('/transfer', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { fromUsername, toUsername } = req.body;
+    if (!fromUsername || !toUsername) {
+      return res.status(400).json({ error: 'fromUsername and toUsername are required.' });
+    }
+    if (fromUsername === toUsername) {
+      return res.status(400).json({ error: 'Source and destination user must be different.' });
+    }
+    const tasks = await readSheet('Tasks');
+    const asOwner = tasks.filter((t) => t.taskOwner === fromUsername);
+    const asAssignee = tasks.filter((t) => t.assignee === fromUsername);
+
+    await Promise.all([
+      ...asOwner.map((t) => updateRowById('Tasks', 0, t.id, { taskOwner: toUsername })),
+      ...asAssignee.map((t) => updateRowById('Tasks', 0, t.id, { assignee: toUsername })),
+    ]);
+
+    res.json({ success: true, ownedTasksMoved: asOwner.length, assignedTasksMoved: asAssignee.length });
+  } catch (err) {
+    console.error('POST /users/transfer failed:', err);
+    res.status(500).json({ error: 'Could not transfer tasks.' });
   }
 });
 
