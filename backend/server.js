@@ -8,11 +8,10 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import taskRoutes from './routes/tasks.js';
+import cronRoutes from './routes/cron.js';
 
 dotenv.config();
 
-// Fail fast in production if required secrets are missing, rather than
-// limping along and throwing confusing errors deep inside a request handler.
 const REQUIRED_ENV_VARS = [
   'JWT_SECRET',
   'ADMIN_USERNAME',
@@ -29,25 +28,16 @@ if (missingEnvVars.length > 0) {
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Vercel (and most reverse proxies) sit in front of this process, so trust
-// the X-Forwarded-For header for accurate client IPs (used by rate limiting).
 app.set('trust proxy', 1);
-
 app.use(helmet());
 
-// Same-origin in production (frontend and backend share one domain via
-// Vercel service rewrites), so CORS mainly matters for local development
-// and any explicitly allow-listed extra origins. Browsers send an Origin
-// header even for same-origin fetch/XHR requests, so we must always allow
-// this deployment's own Vercel domains (production alias + preview URLs),
-// not just the explicit allowlist below.
 const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5000')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 app.use(cors({
   origin(origin, callback) {
-    if (!origin) return callback(null, true); // non-browser/same-origin requests with no Origin header
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     try {
       const hostname = new URL(origin).hostname;
@@ -59,7 +49,6 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
-// Brute-force protection on login specifically, plus a looser general API limit.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -86,18 +75,14 @@ app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/cron', cronRoutes);
 app.use('/api', taskRoutes);
 
-// Serve built frontend in production
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// Safety net: every route already catches its own errors and responds with
-// JSON, but if anything unexpected ever throws (or rejects) past that, this
-// stops the request from hanging silently until Vercel's timeout — a bug we
-// hit in production (empty date strings crashed inserts with no response).
 app.use((err, req, res, next) => {
   console.error('Unhandled route error:', err);
   if (res.headersSent) return next(err);
