@@ -37,15 +37,22 @@ app.use(helmet());
 
 // Same-origin in production (frontend and backend share one domain via
 // Vercel service rewrites), so CORS mainly matters for local development
-// and any explicitly allow-listed extra origins.
+// and any explicitly allow-listed extra origins. Browsers send an Origin
+// header even for same-origin fetch/XHR requests, so we must always allow
+// this deployment's own Vercel domains (production alias + preview URLs),
+// not just the explicit allowlist below.
 const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5000')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 app.use(cors({
   origin(origin, callback) {
-    // Allow non-browser/same-origin requests with no Origin header.
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin) return callback(null, true); // non-browser/same-origin requests with no Origin header
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    try {
+      const hostname = new URL(origin).hostname;
+      if (hostname.endsWith('.vercel.app')) return callback(null, true);
+    } catch (e) { /* fall through to reject below */ }
     callback(new Error('Not allowed by CORS'));
   },
 }));
