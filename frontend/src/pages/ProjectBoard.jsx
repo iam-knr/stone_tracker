@@ -3,9 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import TopBar from '../components/TopBar.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
-import Spinner from '../components/Spinner.jsx';
+import Preloader from '../components/Preloader.jsx';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
+const COLUMN_ACCENTS = {
+  'To Do': 'bg-gray-300',
+  'In Progress': 'bg-google-blue',
+  'Review': 'bg-google-yellow',
+  'Done': 'bg-google-green',
+};
+const COLUMN_ACCENT_HEX = {
+  'To Do': '#dadce0',
+  'In Progress': '#1a73e8',
+  'Review': '#fbbc04',
+  'Done': '#34a853',
+};
 const EMPTY_FORM = { taskName: '', description: '', assignee: '', taskOwner: '', priority: 'Medium', status: 'To Do', startDate: '', dueDate: '' };
 
 export default function ProjectBoard() {
@@ -59,18 +71,22 @@ export default function ProjectBoard() {
   return (
     <div className="min-h-screen bg-google-grey pb-8">
       <TopBar title="Project Board" onAdd={() => setShowModal(true)} addLabel="+ New Task" />
-      <button onClick={() => navigate('/')} className="text-sm text-google-blue px-4 pt-3 inline-block">&larr; Back to projects</button>
+      <button onClick={() => navigate('/')} className="text-sm text-google-blue px-4 pt-3 inline-block link-underline">&larr; Back to projects</button>
 
       {loading ? (
-        <div className="flex justify-center py-16 text-google-blue"><Spinner className="w-6 h-6 text-2xl" /></div>
+        <Preloader label="Loading board…" />
       ) : (
       <div className="p-4 flex gap-4 overflow-x-auto animate-fade-in">
         {COLUMNS.map((col) => (
-          <div key={col} className="min-w-[260px] flex-1">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">{col} ({tasks.filter(t => t.status === col).length})</h3>
-            <div className="space-y-3">
+          <div key={col} className="min-w-[270px] flex-1">
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`w-2 h-2 rounded-full ${COLUMN_ACCENTS[col]}`} />
+              <h3 className="text-sm font-semibold text-gray-600 tracking-wide">{col}</h3>
+              <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{tasks.filter(t => t.status === col).length}</span>
+            </div>
+            <div className="space-y-3 animate-stagger">
               {tasks.filter(t => t.status === col).map((t) => (
-                <div key={t.id} className="bg-white rounded-xl shadow-card p-3">
+                <div key={t.id} className="bg-white rounded-xl shadow-card p-3 hover-lift border-l-4" style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}>
                   <div className="flex justify-between items-start mb-1">
                     <p className="font-medium text-sm text-gray-800">{t.taskName}</p>
                     <PriorityBadge priority={t.priority} />
@@ -79,9 +95,9 @@ export default function ProjectBoard() {
                   <p className="text-xs text-gray-500">Assignee: {t.assignee}</p>
                   <p className="text-xs text-gray-500">Owner: {t.taskOwner}</p>
                   {t.startDate && <p className="text-xs text-gray-400">Start: {t.startDate}</p>}
-                  <p className="text-xs text-gray-400 mb-2">Due: {t.dueDate}</p>
+                  <p className="text-xs text-gray-400 mb-2">Due: {t.dueDate || '—'}</p>
                   <select value={t.status} onChange={(e) => moveTask(t.id, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2">
+                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-google-blue/30 focus:border-google-blue">
                     {COLUMNS.map(c => <option key={c}>{c}</option>)}
                   </select>
                   {isAdmin && (
@@ -98,11 +114,14 @@ export default function ProjectBoard() {
                         <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
                       </div>
                     ) : (
-                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-google-blue font-medium">Transfer ownership/assignee</button>
+                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-google-blue font-medium link-underline">Transfer ownership/assignee</button>
                     )
                   )}
                 </div>
               ))}
+              {tasks.filter(t => t.status === col).length === 0 && (
+                <div className="text-xs text-gray-300 text-center py-6 border border-dashed border-gray-200 rounded-xl">No tasks</div>
+              )}
             </div>
           </div>
         ))}
@@ -110,14 +129,14 @@ export default function ProjectBoard() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-20">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-20 animate-fade-in">
           <form onSubmit={handleAdd} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-medium mb-4">New Task</h2>
 
             <label className="block text-xs text-gray-500 mb-1">Task Name</label>
             <input required placeholder="Task name" value={form.taskName}
               onChange={(e) => setForm({ ...form, taskName: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm focus:ring-2 focus:ring-google-blue/30 focus:border-google-blue transition" />
 
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <textarea placeholder="Description" value={form.description}
@@ -163,8 +182,8 @@ export default function ProjectBoard() {
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => setShowModal(false)} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600">Cancel</button>
-              <button className="w-1/2 py-2 rounded-full bg-google-blue text-white font-medium">Create</button>
+              <button type="button" onClick={() => setShowModal(false)} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
+              <button className="w-1/2 py-2 rounded-full bg-google-blue text-white font-medium btn-modern">Create</button>
             </div>
           </form>
         </div>
