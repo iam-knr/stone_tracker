@@ -8,6 +8,9 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
 
     if (username === process.env.ADMIN_USERNAME) {
       const match = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
@@ -26,7 +29,8 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ username, role: user.role || 'task_assignee', id: user.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, role: user.role || 'task_assignee', username });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /auth/login failed:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
