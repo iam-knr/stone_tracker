@@ -24,5 +24,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
+// Safety net: every route already catches its own errors and responds with
+// JSON, but if anything unexpected ever throws (or rejects) past that, this
+// stops the request from hanging silently until Vercel's timeout — a bug we
+// hit in production (empty date strings crashed inserts with no response).
+app.use((err, req, res, next) => {
+  console.error('Unhandled route error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Stone Tracker backend running on port ${PORT}`));
