@@ -33,7 +33,8 @@ export default function ProjectBoard() {
 
   async function handleAdd(e) {
     e.preventDefault();
-    await api.post('/tasks', { ...form, projectId: id });
+    const payload = { ...form, projectId: id, startDate: form.startDate || null, dueDate: form.dueDate || null };
+    await api.post('/tasks', payload);
     setShowModal(false);
     setForm(EMPTY_FORM);
     load();

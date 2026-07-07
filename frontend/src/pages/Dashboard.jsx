@@ -16,7 +16,8 @@ export default function Dashboard() {
 
   async function handleAdd(e) {
     e.preventDefault();
-    await api.post('/projects', form);
+    const payload = { ...form, startDate: form.startDate || null, deadline: form.deadline || null };
+    await api.post('/projects', payload);
     setShowModal(false);
     setForm({ name: '', client: '', startDate: '', deadline: '', status: 'Not Started' });
     load();
