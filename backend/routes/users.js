@@ -4,7 +4,7 @@ import { readSheet, appendRow, updateRowById, deleteRowById } from '../services/
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
-const HEADERS = ['id', 'username', 'passwordHash', 'role', 'createdAt'];
+const HEADERS = ['id', 'username', 'passwordHash', 'email', 'role', 'createdAt', 'resetTokenHash', 'resetTokenExpiry'];
 const VALID_ROLES = ['admin', 'task_owner', 'task_assignee'];
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -44,12 +44,15 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
 // Admin (Super Admin): create new user
 router.post('/', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { username, password, email, role } = req.body;
     if (!isValidUsername(username)) {
       return res.status(400).json({ error: 'Username must be 3-32 characters (letters, numbers, ., _, -).' });
     }
     if (!isValidPassword(password)) {
       return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'That does not look like a valid email address.' });
     }
     if (role && !VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
@@ -63,6 +66,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
       id: Date.now().toString(),
       username,
       passwordHash,
+      email: email || null,
       role: role || 'task_assignee',
       createdAt: new Date().toISOString(),
     };
