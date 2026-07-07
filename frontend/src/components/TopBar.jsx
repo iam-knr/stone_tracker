@@ -19,7 +19,7 @@ export default function TopBar({ title, onAdd, addLabel }) {
   return (
     <div className="sticky top-0 z-10 bg-white shadow-card flex items-center justify-between px-4 py-3">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-google-blue flex items-center justify-center text-white font-bold">S</div>
+        <img src="/logo.png" alt="Stone Tracker" className="w-8 h-8 rounded-lg" />
         <span className="text-lg font-medium text-gray-800">{title}</span>
       </div>
       <div className="flex items-center gap-3">
