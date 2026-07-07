@@ -8,4 +8,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// If the token is missing/expired/invalid, the backend returns 401.
+// Clear the stale session and bounce to login instead of leaving the
+// user stuck on a broken page full of failed requests.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      localStorage.clear();
+      window.location.assign('/login');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
