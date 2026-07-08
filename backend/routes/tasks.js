@@ -42,7 +42,7 @@ router.post('/projects', verifyToken, async (req, res) => {
     if (status && !VALID_PROJECT_STATUSES.includes(status)) {
       return res.status(400).json({ error: `Status must be one of: ${VALID_PROJECT_STATUSES.join(', ')}` });
     }
-    const project = { id: Date.now().toString(), ...sanitizeDates(req.body, ['startDate', 'deadline']) };
+    const project = { id: Date.now().toString(), createdat: new Date().toISOString(), ...sanitizeDates(req.body, ['startDate', 'deadline']) };
     await appendRow('Projects', project, PROJECT_HEADERS);
     res.json({ success: true, id: project.id });
   } catch (err) {
@@ -149,7 +149,8 @@ router.post('/tasks', verifyToken, async (req, res) => {
     if (status && !VALID_TASK_STATUSES.includes(status)) {
       return res.status(400).json({ error: `Status must be one of: ${VALID_TASK_STATUSES.join(', ')}` });
     }
-    const task = { id: Date.now().toString(), ...sanitizeDates(req.body, ['startDate', 'dueDate']) };
+    const now = new Date().toISOString();
+    const task = { id: Date.now().toString(), createdat: now, updatedat: now, ...sanitizeDates(req.body, ['startDate', 'dueDate']) };
     await appendRow('Tasks', task, TASK_HEADERS);
     res.json({ success: true, id: task.id });
   } catch (err) {
@@ -173,7 +174,7 @@ router.put('/tasks/:id', verifyToken, async (req, res) => {
     if (req.body.status && !VALID_TASK_STATUSES.includes(req.body.status)) {
       return res.status(400).json({ error: `Status must be one of: ${VALID_TASK_STATUSES.join(', ')}` });
     }
-    const updates = sanitizeDates(req.body, ['startDate', 'dueDate']);
+    const updates = { ...sanitizeDates(req.body, ['startDate', 'dueDate']), updatedat: new Date().toISOString() };
     await updateRowById('Tasks', 0, req.params.id, updates, TASK_HEADERS);
     res.json({ success: true });
   } catch (err) {
