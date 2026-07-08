@@ -14,6 +14,8 @@ export default function Projects() {
   const [showModal, setShowModal] = useState(false);
   const [view, setView] = useState('active'); // 'active' | 'archived'
   const [form, setForm] = useState({ name: '', client: '', startDate: '', deadline: '', status: 'Not Started' });
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
 
   async function load() {
     const { data } = await api.get('/projects');
@@ -48,8 +50,56 @@ export default function Projects() {
     }
   }
 
-  const visibleProjects = projects.filter((p) => (view === 'archived' ? !!p.archived : !p.archived));
+  // Manual drag-and-drop reordering — only meaningful in the Active view.
+  // The dragged card is swapped to sit just before/after the card it's
+  // dropped on, then the whole visible order is persisted as sequential
+  // `sortorder` values via a single reorder call.
+  function handleDragStart(id) {
+    setDragId(id);
+  }
+  function handleDragOver(e, id) {
+    e.preventDefault();
+    if (id !== overId) setOverId(id);
+  }
+  function handleDragEnd() {
+    setDragId(null);
+    setOverId(null);
+  }
+  async function handleDrop(targetId) {
+    const currentDragId = dragId;
+    setDragId(null);
+    setOverId(null);
+    if (!currentDragId || currentDragId === targetId) return;
+
+    const activeIds = sortedProjects.filter((p) => !p.archived).map((p) => p.id);
+    const from = activeIds.indexOf(currentDragId);
+    const to = activeIds.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+
+    const reordered = [...activeIds];
+    reordered.splice(from, 1);
+    reordered.splice(to, 0, currentDragId);
+
+    setProjects((prev) => prev.map((p) => {
+      const idx = reordered.indexOf(p.id);
+      return idx === -1 ? p : { ...p, sortorder: idx };
+    }));
+
+    try {
+      await api.post('/projects/reorder', { orderedIds: reordered });
+    } catch (err) {
+      load();
+    }
+  }
+
+  const sortedProjects = [...projects].sort((a, b) => {
+    const av = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+    const bv = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+    return av - bv;
+  });
+  const visibleProjects = sortedProjects.filter((p) => (view === 'archived' ? !!p.archived : !p.archived));
   const archivedCount = projects.filter((p) => p.archived).length;
+  const canReorder = view === 'active';
 
   return (
     <DashboardShell
@@ -92,6 +142,13 @@ export default function Projects() {
               onDelete={handleDelete}
               canArchive={canArchiveProject}
               onArchiveToggle={handleArchiveToggle}
+              draggable={canReorder}
+              isDragging={dragId === p.id}
+              isDragOver={canReorder && overId === p.id && dragId !== p.id}
+              onDragStart={() => handleDragStart(p.id)}
+              onDragOver={(e) => handleDragOver(e, p.id)}
+              onDrop={() => handleDrop(p.id)}
+              onDragEnd={handleDragEnd}
             />
           ))}
           {visibleProjects.length === 0 && (
