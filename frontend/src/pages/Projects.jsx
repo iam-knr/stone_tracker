@@ -8,9 +8,11 @@ export default function Projects() {
   const role = localStorage.getItem('st_role');
   const canCreateProject = role === 'admin' || role === 'task_owner';
   const canDeleteProject = role === 'admin' || role === 'task_owner';
+  const canArchiveProject = role === 'admin' || role === 'task_owner';
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [view, setView] = useState('active'); // 'active' | 'archived'
   const [form, setForm] = useState({ name: '', client: '', startDate: '', deadline: '', status: 'Not Started' });
 
   async function load() {
@@ -37,6 +39,18 @@ export default function Projects() {
     }
   }
 
+  async function handleArchiveToggle(id, archived) {
+    try {
+      await api.patch(`/projects/${id}/archive`, { archived });
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not update archive status.');
+    }
+  }
+
+  const visibleProjects = projects.filter((p) => (view === 'archived' ? !!p.archived : !p.archived));
+  const archivedCount = projects.filter((p) => p.archived).length;
+
   return (
     <DashboardShell
       title="Projects"
@@ -49,16 +63,42 @@ export default function Projects() {
         )
       }
     >
+      {canArchiveProject && (
+        <div className="flex items-center gap-2 mb-5">
+          <button
+            onClick={() => setView('active')}
+            className={`text-sm font-medium px-3 py-1.5 rounded-full transition ${view === 'active' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setView('archived')}
+            className={`text-sm font-medium px-3 py-1.5 rounded-full transition ${view === 'archived' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            Archived{archivedCount > 0 ? ` (${archivedCount})` : ''}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <Preloader label="Loading projects…" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-stagger">
-          {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} canDelete={canDeleteProject} onDelete={handleDelete} />
+          {visibleProjects.map((p) => (
+            <ProjectCard
+              key={p.id}
+              project={p}
+              canDelete={canDeleteProject}
+              onDelete={handleDelete}
+              canArchive={canArchiveProject}
+              onArchiveToggle={handleArchiveToggle}
+            />
           ))}
-          {projects.length === 0 && (
+          {visibleProjects.length === 0 && (
             <p className="text-gray-400 col-span-full text-center mt-10">
-              {role === 'task_assignee' ? 'No tasks have been assigned to you yet.' : 'No projects yet. Tap + New Project to add one.'}
+              {view === 'archived'
+                ? 'No archived projects.'
+                : role === 'task_assignee' ? 'No tasks have been assigned to you yet.' : 'No projects yet. Tap + New Project to add one.'}
             </p>
           )}
         </div>

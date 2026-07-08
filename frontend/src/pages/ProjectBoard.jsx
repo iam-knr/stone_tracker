@@ -4,6 +4,7 @@ import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
 import Preloader from '../components/Preloader.jsx';
+import { ArchiveBoxIcon, TrashIcon } from '../components/Icons.jsx';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
 const COLUMN_ACCENTS = {
@@ -30,11 +31,13 @@ export default function ProjectBoard() {
   const canDeleteProject = isAdmin || isTaskOwner;
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [project, setProject] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [transferTaskId, setTransferTaskId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const owners = users.filter((u) => u.role === 'task_owner' || u.role === 'admin');
   const assignees = users.filter((u) => u.role === 'task_assignee' || u.role === 'admin');
@@ -47,9 +50,13 @@ export default function ProjectBoard() {
     const { data } = await api.get('/users/list');
     setUsers(data);
   }
+  async function loadProject() {
+    const { data } = await api.get('/projects');
+    setProject(data.find((p) => p.id === id) || null);
+  }
   useEffect(() => {
     setLoading(true);
-    Promise.all([load(), loadUsers()]).finally(() => setLoading(false));
+    Promise.all([load(), loadUsers(), loadProject()]).finally(() => setLoading(false));
   }, [id]);
 
   async function handleAdd(e) {
@@ -99,17 +106,51 @@ export default function ProjectBoard() {
     }
   }
 
+  async function toggleArchive() {
+    const willArchive = !project?.archived;
+    if (willArchive && !window.confirm('Archive this project? It will be hidden from the active projects list until you unarchive it.')) return;
+    setArchiving(true);
+    try {
+      await api.patch(`/projects/${id}/archive`, { archived: willArchive });
+      await loadProject();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not update archive status.');
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   return (
     <DashboardShell
       title="Project Board"
       subtitle={
-        <button onClick={() => navigate('/projects')} className="text-indigo-600 link-underline">&larr; Back to projects</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/projects')} className="text-indigo-600 link-underline">&larr; Back to projects</button>
+          {project?.archived && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Archived</span>
+          )}
+        </div>
       }
       actions={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {canDeleteProject && (
-            <button onClick={deleteProject} disabled={deletingProject} className="text-google-red text-sm font-medium link-underline disabled:opacity-60">
-              {deletingProject ? 'Deleting…' : 'Delete Project'}
+            <button
+              onClick={toggleArchive}
+              disabled={archiving}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 border border-gray-200 px-3.5 py-2 rounded-full hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors disabled:opacity-60"
+            >
+              <ArchiveBoxIcon className="w-[15px] h-[15px]" />
+              {archiving ? 'Updating…' : project?.archived ? 'Unarchive' : 'Archive'}
+            </button>
+          )}
+          {canDeleteProject && (
+            <button
+              onClick={deleteProject}
+              disabled={deletingProject}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 border border-gray-200 px-3.5 py-2 rounded-full hover:border-red-200 hover:text-google-red hover:bg-red-50/50 transition-colors disabled:opacity-60"
+            >
+              <TrashIcon className="w-[15px] h-[15px]" />
+              {deletingProject ? 'Deleting…' : 'Delete'}
             </button>
           )}
           <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
@@ -131,11 +172,20 @@ export default function ProjectBoard() {
             </div>
             <div className="space-y-3 animate-stagger">
               {tasks.filter(t => t.status === col).map((t) => (
-                <div key={t.id} className="bg-white rounded-xl shadow-card p-3 hover-lift border-l-4" style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}>
-                  <div className="flex justify-between items-start mb-1">
+                <div key={t.id} className="group bg-white rounded-xl shadow-card p-3 hover-lift border-l-4" style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}>
+                  <div className="flex justify-between items-start mb-1 gap-2">
                     <p className="font-medium text-sm text-gray-800">{t.taskName}</p>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <PriorityBadge priority={t.priority} />
+                      {canDeleteTask(t) && (
+                        <button
+                          onClick={() => deleteTask(t.id, t.taskName)}
+                          title="Delete task"
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-google-red transition-colors"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   {t.description && <p className="text-xs text-gray-500 mb-1">{t.description}</p>}
@@ -163,9 +213,6 @@ export default function ProjectBoard() {
                     ) : (
                       <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline block mb-1">Transfer ownership/assignee</button>
                     )
-                  )}
-                  {canDeleteTask(t) && (
-                    <button onClick={() => deleteTask(t.id, t.taskName)} className="text-xs text-google-red font-medium link-underline">Delete task</button>
                   )}
                 </div>
               ))}
