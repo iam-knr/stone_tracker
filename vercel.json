@@ -6,7 +6,8 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/backend/server.js" },
-    { "source": "/(.*)", "destination": "/frontend/$1" }
+    { "source": "/(.*\\.[a-zA-Z0-9]+)", "destination": "/frontend/$1" },
+    { "source": "/(.*)", "destination": "/frontend/index.html" }
   ],
   "crons": [
     { "path": "/api/cron/digest", "schedule": "30 2 * * *" },
