@@ -4,7 +4,7 @@ import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 const TASK_HEADERS = ['id','projectId','taskName','description','assignee','taskOwner','priority','status','startDate','dueDate','notes'];
-const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status'];
+const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status','archived'];
 
 const VALID_PRIORITIES = ['High', 'Medium', 'Low'];
 const VALID_TASK_STATUSES = ['To Do', 'In Progress', 'Review', 'Done'];
@@ -73,6 +73,32 @@ router.delete('/projects/:id', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('DELETE /projects/:id failed:', err);
     res.status(500).json({ error: 'Could not delete project.' });
+  }
+});
+
+// Archive/unarchive a project. Restricted the same way as delete — only
+// the Super Admin and Task Owners can do it, task assignees cannot.
+// Archiving a project doesn't touch its tasks; it just hides the project
+// from the default (non-archived) project list.
+router.patch('/projects/:id/archive', verifyToken, async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin' && req.user?.role !== 'task_owner') {
+      return res.status(403).json({ error: 'Only a Super Admin or Task Owner can archive projects.' });
+    }
+    const { id } = req.params;
+    const { archived } = req.body;
+    if (typeof archived !== 'boolean') {
+      return res.status(400).json({ error: '"archived" must be true or false.' });
+    }
+    const projects = await readSheet('Projects');
+    const project = projects.find((p) => p.id === id);
+    if (!project) return res.status(404).json({ error: 'Project not found.' });
+
+    await updateRowById('Projects', 0, id, { archived }, PROJECT_HEADERS);
+    res.json({ success: true, archived });
+  } catch (err) {
+    console.error('PATCH /projects/:id/archive failed:', err);
+    res.status(500).json({ error: 'Could not update archive status.' });
   }
 });
 
