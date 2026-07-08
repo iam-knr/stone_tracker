@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
+import ActivityDrawer from './ActivityDrawer.jsx';
 import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, LogoutIcon } from './Icons.jsx';
 
 const MOBILE_NAV_ITEMS = [
@@ -80,6 +81,7 @@ export default function DashboardShell({ title, subtitle, actions, children, ful
           {children}
         </main>
       </div>
+      <ActivityDrawer />
     </div>
   );
 }

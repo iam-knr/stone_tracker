@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon } from './Icons.jsx';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
   { to: '/projects', label: 'Projects', icon: FolderIcon },
   { to: '/tasks', label: 'Tasks', icon: ChecklistIcon },
   { to: '/settings', label: 'Settings', icon: GearIcon },
+];
+
+const ADMIN_NAV_ITEMS = [
+  { to: '/admin/deleted-items', label: 'Deleted Items', icon: TrashIcon },
 ];
 
 const ROLE_LABELS = {
@@ -78,6 +82,27 @@ export default function Sidebar() {
             {!collapsed && label}
           </NavLink>
         ))}
+
+        {role === 'admin' && (
+          <>
+            <div className={`my-2 border-t border-gray-100 ${collapsed ? 'mx-2' : ''}`} />
+            {ADMIN_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                title={collapsed ? label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    collapsed ? 'justify-center px-0' : ''
+                  } ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`
+                }
+              >
+                <Icon className="w-[18px] h-[18px] shrink-0" />
+                {!collapsed && label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="px-3 pb-5 space-y-1 border-t border-gray-100 pt-3">

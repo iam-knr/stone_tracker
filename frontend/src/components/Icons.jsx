@@ -122,3 +122,24 @@ export function GripIcon(props) {
     </svg>
   );
 }
+
+// Circular "undo" arrow used for restoring items out of the trash, and
+// for the activity pill toggle.
+export function RestoreIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 9a8 8 0 1 1 1.5 6.5" />
+      <path d="M4 4v5h5" />
+    </svg>
+  );
+}
+
+// Small dot-clock icon used for the Recent Activity pill tab.
+export function ActivityIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
