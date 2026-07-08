@@ -7,23 +7,39 @@ const STATUS_COLORS = {
   'Completed': 'bg-green-100 text-google-green',
 };
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, canDelete, onDelete }) {
   const navigate = useNavigate();
+
+  function handleDelete(e) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete project "${project.name}"? This will also delete all of its tasks. This cannot be undone.`)) return;
+    onDelete?.(project.id);
+  }
+
   return (
     <div
       onClick={() => navigate(`/project/${project.id}`)}
-      className="bg-white rounded-2xl shadow-card p-4 cursor-pointer hover-lift border border-transparent hover:border-google-blue/10"
+      className="relative bg-white rounded-xl shadow-card p-4 cursor-pointer hover:shadow-lg transition active:scale-[0.99]"
     >
-      <div className="flex justify-between items-start mb-2">
+      {canDelete && (
+        <button
+          onClick={handleDelete}
+          title="Delete project"
+          className="absolute top-3 right-3 text-gray-300 hover:text-google-red text-xs font-medium link-underline"
+        >
+          Delete
+        </button>
+      )}
+      <div className="flex justify-between items-start mb-2 pr-14">
         <h3 className="font-medium text-gray-800">{project.name}</h3>
         <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[project.status] || 'bg-gray-100'}`}>
           {project.status}
         </span>
       </div>
-      <p className="text-sm text-gray-500 mb-3">{project.client}</p>
-      <div className="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
-        <span>Start: {project.startDate || '—'}</span>
-        <span>Due: {project.deadline || '—'}</span>
+      <p className="text-sm text-gray-500 mb-2">{project.client}</p>
+      <div className="flex justify-between text-xs text-gray-400">
+        <span>Start: {project.startDate}</span>
+        <span>Due: {project.deadline}</span>
       </div>
     </div>
   );
