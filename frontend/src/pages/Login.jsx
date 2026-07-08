@@ -21,7 +21,7 @@ export default function Login() {
       localStorage.setItem('st_username', data.username);
       navigate('/');
     } catch {
-      setError('Invalid username or password. Contact your admin if you forgot your password.');
+      setError('Invalid username/email or password. Contact your admin if you forgot your password.');
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export default function Login() {
         {error && <p className="text-google-red text-sm mb-3 text-center">{error}</p>}
         <input
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-google-blue"
-          placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username or email" value={username} onChange={(e) => setUsername(e.target.value)}
         />
         <input
           type="password"
