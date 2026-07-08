@@ -8,6 +8,7 @@ import Tasks from './pages/Tasks.jsx';
 import Settings from './pages/Settings.jsx';
 import ProjectBoard from './pages/ProjectBoard.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
+import DeletedItems from './pages/DeletedItems.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -27,6 +28,7 @@ export default function App() {
       <Route path="/settings" element={<Private><Settings /></Private>} />
       <Route path="/project/:id" element={<Private><ProjectBoard /></Private>} />
       <Route path="/admin/users" element={<Private><AdminOnly><AdminUsers /></AdminOnly></Private>} />
+      <Route path="/admin/deleted-items" element={<Private><AdminOnly><DeletedItems /></AdminOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
