@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { readSheet, updateRowById } from '../services/supabase.js';
+import { readSheet, appendRow, updateRowById } from '../services/supabase.js';
 import { sendPasswordResetEmail } from '../services/mailer.js';
 
 const router = express.Router();
@@ -17,32 +17,63 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
+    const users = await readSheet('Users');
+    const dbUser = users.find((u) => u.username === username);
+
+    // Primary path: DB-backed auth. Covers task owners/assignees, and the
+    // Super Admin once its row has been synced (see fallback below) — so
+    // password resets, self-service password changes, and admin-managed
+    // password/email edits all work consistently for every account,
+    // including the Super Admin.
+    if (dbUser) {
+      const match = await bcrypt.compare(password, dbUser.passwordHash);
+      if (match) {
+        const role = dbUser.role || 'task_assignee';
+        const token = jwt.sign({ username, role, id: dbUser.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ token, role, username });
+      }
+    }
+
+    // Fallback: legacy env-var Super Admin auth (ADMIN_USERNAME /
+    // ADMIN_PASSWORD_HASH). Keeps existing Super Admin credentials working
+    // even before its Users-table row is in sync. On a successful match,
+    // syncs (or creates) the Users row with the current password so that
+    // every subsequent login, "Change Password", and password-reset flow
+    // for the Super Admin goes through the same DB-backed path above.
     if (username === process.env.ADMIN_USERNAME) {
-      const match = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-      if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-      const token = jwt.sign({ username, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
+      const envMatch = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+      if (!envMatch) return res.status(401).json({ error: 'Invalid credentials' });
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      let adminId = dbUser?.id;
+      if (dbUser) {
+        await updateRowById('Users', 0, dbUser.id, { passwordHash, role: 'admin' }, HEADERS);
+      } else {
+        adminId = 'u_admin';
+        await appendRow('Users', {
+          id: adminId,
+          username,
+          passwordHash,
+          email: null,
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        }, HEADERS);
+      }
+
+      const token = jwt.sign({ username, role: 'admin', id: adminId }, process.env.JWT_SECRET, { expiresIn: '8h' });
       return res.json({ token, role: 'admin', username });
     }
 
-    const users = await readSheet('Users');
-    const user = users.find((u) => u.username === username);
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const token = jwt.sign({ username, role: user.role || 'task_assignee', id: user.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token, role: user.role || 'task_assignee', username });
+    return res.status(401).json({ error: 'Invalid credentials' });
   } catch (err) {
     console.error('POST /auth/login failed:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
-// Request a password-reset email. Only works for regular users created via
-// Manage Users (with an email on file) — the Super Admin account is
-// env-var based and isn't in the users table, so it's reset manually in
-// Vercel's environment variables, as documented in the README.
+// Request a password-reset email. Works for any account that has an email
+// on file in the Users table — including the Super Admin, once its row has
+// been synced by a successful login (see /login above).
 // Always responds with the same generic message so this endpoint can't be
 // used to enumerate which usernames/emails exist in the system.
 router.post('/forgot-password', async (req, res) => {

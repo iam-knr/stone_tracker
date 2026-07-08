@@ -28,13 +28,13 @@ router.get('/list', verifyToken, async (req, res) => {
   }
 });
 
-// Any authenticated (non-admin) user: change their own password. The Super
-// Admin account is env-var based and isn't a row in this table, so it isn't
-// covered here — its password is changed via Vercel env vars.
+// Any authenticated user (including the Super Admin, once its Users-table
+// row has been synced by a successful login via /auth/login): change their
+// own password.
 router.put('/me/password', verifyToken, async (req, res) => {
   try {
-    if (req.user?.role === 'admin' && !req.user?.id) {
-      return res.status(400).json({ error: 'Super Admin password is managed via environment variables.' });
+    if (!req.user?.id) {
+      return res.status(400).json({ error: 'Please log in again before changing your password.' });
     }
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -112,6 +112,11 @@ router.put('/:id/role', verifyToken, requireAdmin, async (req, res) => {
     if (!VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
     }
+    const users = await readSheet('Users');
+    const target = users.find((u) => u.id === req.params.id);
+    if (target && target.username === process.env.ADMIN_USERNAME && role !== 'admin') {
+      return res.status(400).json({ error: 'The Super Admin account must keep the Super Admin role.' });
+    }
     await updateRowById('Users', 0, req.params.id, { role });
     res.json({ success: true });
   } catch (err) {
@@ -183,6 +188,11 @@ router.post('/transfer', verifyToken, requireAdmin, async (req, res) => {
 // Admin (Super Admin): delete a user
 router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
+    const users = await readSheet('Users');
+    const target = users.find((u) => u.id === req.params.id);
+    if (target && target.username === process.env.ADMIN_USERNAME) {
+      return res.status(400).json({ error: 'The Super Admin account cannot be deleted.' });
+    }
     await deleteRowById('Users', 0, req.params.id);
     res.json({ success: true });
   } catch (err) {
