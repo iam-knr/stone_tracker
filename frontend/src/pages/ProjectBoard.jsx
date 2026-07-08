@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api.js';
-import TopBar from '../components/TopBar.jsx';
+import DashboardShell from '../components/DashboardShell.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
 import Preloader from '../components/Preloader.jsx';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
 const COLUMN_ACCENTS = {
   'To Do': 'bg-gray-300',
-  'In Progress': 'bg-google-blue',
+  'In Progress': 'bg-indigo-600',
   'Review': 'bg-google-yellow',
   'Done': 'bg-google-green',
 };
 const COLUMN_ACCENT_HEX = {
   'To Do': '#dadce0',
-  'In Progress': '#1a73e8',
+  'In Progress': '#4f46e5',
   'Review': '#fbbc04',
   'Done': '#34a853',
 };
@@ -69,14 +69,21 @@ export default function ProjectBoard() {
   }
 
   return (
-    <div className="min-h-screen bg-google-grey pb-8">
-      <TopBar title="Project Board" onAdd={() => setShowModal(true)} addLabel="+ New Task" />
-      <button onClick={() => navigate('/')} className="text-sm text-google-blue px-4 pt-3 inline-block link-underline">&larr; Back to projects</button>
-
+    <DashboardShell
+      title="Project Board"
+      subtitle={
+        <button onClick={() => navigate('/projects')} className="text-indigo-600 link-underline">&larr; Back to projects</button>
+      }
+      actions={
+        <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
+          <span className="text-lg leading-none">+</span> New Task
+        </button>
+      }
+    >
       {loading ? (
         <Preloader label="Loading board…" />
       ) : (
-      <div className="p-4 flex gap-4 overflow-x-auto animate-fade-in">
+      <div className="flex gap-4 overflow-x-auto animate-fade-in pb-2">
         {COLUMNS.map((col) => (
           <div key={col} className="min-w-[270px] flex-1">
             <div className="flex items-center gap-2 mb-3">
@@ -97,7 +104,7 @@ export default function ProjectBoard() {
                   {t.startDate && <p className="text-xs text-gray-400">Start: {t.startDate}</p>}
                   <p className="text-xs text-gray-400 mb-2">Due: {t.dueDate || '—'}</p>
                   <select value={t.status} onChange={(e) => moveTask(t.id, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-google-blue/30 focus:border-google-blue">
+                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
                     {COLUMNS.map(c => <option key={c}>{c}</option>)}
                   </select>
                   {isAdmin && (
@@ -114,7 +121,7 @@ export default function ProjectBoard() {
                         <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
                       </div>
                     ) : (
-                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-google-blue font-medium link-underline">Transfer ownership/assignee</button>
+                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline">Transfer ownership/assignee</button>
                     )
                   )}
                 </div>
@@ -136,7 +143,7 @@ export default function ProjectBoard() {
             <label className="block text-xs text-gray-500 mb-1">Task Name</label>
             <input required placeholder="Task name" value={form.taskName}
               onChange={(e) => setForm({ ...form, taskName: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm focus:ring-2 focus:ring-google-blue/30 focus:border-google-blue transition" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
 
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <textarea placeholder="Description" value={form.description}
@@ -183,11 +190,11 @@ export default function ProjectBoard() {
 
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowModal(false)} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
-              <button className="w-1/2 py-2 rounded-full bg-google-blue text-white font-medium btn-modern">Create</button>
+              <button className="w-1/2 py-2 rounded-full bg-indigo-600 text-white font-medium btn-modern">Create</button>
             </div>
           </form>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }
