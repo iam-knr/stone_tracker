@@ -76,3 +76,38 @@ export function PlusIcon(props) {
     </svg>
   );
 }
+
+// Role icons — shown in the sidebar/topbar brand mark in place of the
+// generic "St" monogram, so the icon itself hints at who's signed in.
+
+// Super Admin: a crown.
+export function CrownIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 8.5 8 12l4-6 4 6 4-3.5-1.4 9.5a1 1 0 0 1-1 .9H6.4a1 1 0 0 1-1-.9L4 8.5Z" />
+      <path d="M6.6 19.5h10.8" />
+    </svg>
+  );
+}
+
+// Task Owner: a briefcase.
+export function BriefcaseIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="7.5" width="18" height="11.5" rx="1.6" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" />
+      <path d="M3 12.5h18" />
+      <path d="M10.7 12.5h2.6v1.8h-2.6z" />
+    </svg>
+  );
+}
+
+// Task Assignee: a person / user badge.
+export function UserIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="8.3" r="3.3" />
+      <path d="M4.8 19.8a7.2 7.2 0 0 1 14.4 0" />
+    </svg>
+  );
+}

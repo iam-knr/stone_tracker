@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, LogoutIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, LogoutIcon, CrownIcon, BriefcaseIcon, UserIcon } from './Icons.jsx';
 
 const MOBILE_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
@@ -9,8 +9,26 @@ const MOBILE_NAV_ITEMS = [
   { to: '/settings', label: 'Settings', icon: GearIcon },
 ];
 
+const ROLE_LABELS = {
+  admin: 'Super Admin',
+  task_owner: 'Task Owner',
+  task_assignee: 'Task Assignee',
+};
+
+// Same per-role icon mapping used in the desktop Sidebar, so the mobile
+// brand mark also hints at which kind of account is signed in.
+const ROLE_ICONS = {
+  admin: CrownIcon,
+  task_owner: BriefcaseIcon,
+  task_assignee: UserIcon,
+};
+
 function MobileTopBar() {
   const navigate = useNavigate();
+  const role = localStorage.getItem('st_role');
+  const username = localStorage.getItem('st_username');
+  const RoleIcon = ROLE_ICONS[role] || GridIcon;
+
   function logout() {
     localStorage.clear();
     navigate('/login', { replace: true });
@@ -18,11 +36,18 @@ function MobileTopBar() {
   return (
     <div className="sm:hidden sticky top-0 z-10 bg-white border-b border-gray-100">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-semibold text-xs">St</div>
-          <span className="text-base font-semibold text-gray-900">Stone Tracker</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+            <RoleIcon className="w-[18px] h-[18px]" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-gray-900 leading-tight truncate">Stone Tracker</p>
+            <p className="text-[11px] text-gray-400 font-medium leading-tight truncate">
+              {username}{username ? ' · ' : ''}{(ROLE_LABELS[role] || 'ENTERPRISE').toUpperCase()}
+            </p>
+          </div>
         </div>
-        <button onClick={logout} className="text-gray-400 hover:text-google-red p-1">
+        <button onClick={logout} className="text-gray-400 hover:text-google-red p-1 shrink-0">
           <LogoutIcon className="w-5 h-5" />
         </button>
       </div>
