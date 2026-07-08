@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { readSheet, updateRowById } from '../services/supabase.js';
+import { readSheet, appendRow, updateRowById } from '../services/supabase.js';
 import { sendPasswordResetEmail } from '../services/mailer.js';
 
 const router = express.Router();
@@ -27,42 +27,72 @@ router.post('/login', async (req, res) => {
 
     const identifier = String(username).trim();
     const users = await readSheet('Users');
-    const user = findUserByIdentifier(users, identifier);
+    const dbUser = findUserByIdentifier(users, identifier);
 
-    // Super Admin: matched either by the configured env username directly,
-    // or by looking up their email/username in the Users table row that
-    // mirrors the Super Admin account. Password is still verified against
-    // the env-configured hash (the DB row's hash is a non-functional
-    // placeholder for display purposes only).
-    const isAdminIdentifier = identifier === process.env.ADMIN_USERNAME || (user && user.username === process.env.ADMIN_USERNAME);
-    if (isAdminIdentifier) {
-      const match = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-      if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-      const token = jwt.sign({ username: process.env.ADMIN_USERNAME, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, role: 'admin', username: process.env.ADMIN_USERNAME });
+    // Primary path: DB-backed auth. Covers task owners/assignees, and the
+    // Super Admin once its row has been synced (see fallback below) — so
+    // password resets, self-service password changes, and admin-managed
+    // password/email edits all work consistently for every account,
+    // including the Super Admin. Users can sign in with either their
+    // username or their email.
+    if (dbUser) {
+      const match = await bcrypt.compare(password, dbUser.passwordHash);
+      if (match) {
+        const role = dbUser.role || 'task_assignee';
+        const token = jwt.sign({ username: dbUser.username, role, id: dbUser.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ token, role, username: dbUser.username });
+      }
     }
 
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    // Fallback: legacy env-var Super Admin auth (ADMIN_USERNAME /
+    // ADMIN_PASSWORD_HASH). Matches by the configured username OR by the
+    // email/username of the Users-table row that mirrors the Super Admin
+    // account, so the Super Admin can sign in with their email too. On a
+    // successful match, syncs (or creates) the Users row with the current
+    // password so that every subsequent login, "Change Password", and
+    // password-reset flow for the Super Admin goes through the same
+    // DB-backed path above.
+    const isAdminIdentifier = identifier === process.env.ADMIN_USERNAME || (dbUser && dbUser.username === process.env.ADMIN_USERNAME);
+    if (isAdminIdentifier) {
+      const envMatch = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+      if (!envMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+      const passwordHash = await bcrypt.hash(password, 10);
+      const adminUsername = process.env.ADMIN_USERNAME;
+      let adminId = dbUser?.id;
+      if (dbUser) {
+        await updateRowById('Users', 0, dbUser.id, { passwordHash, role: 'admin' }, HEADERS);
+      } else {
+        adminId = 'u_admin';
+        await appendRow('Users', {
+          id: adminId,
+          username: adminUsername,
+          passwordHash,
+          email: null,
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        }, HEADERS);
+      }
 
-    const token = jwt.sign({ username: user.username, role: user.role || 'task_assignee', id: user.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token, role: user.role || 'task_assignee', username: user.username });
+      const token = jwt.sign({ username: adminUsername, role: 'admin', id: adminId }, process.env.JWT_SECRET, { expiresIn: '8h' });
+      return res.json({ token, role: 'admin', username: adminUsername });
+    }
+
+    return res.status(401).json({ error: 'Invalid credentials' });
   } catch (err) {
     console.error('POST /auth/login failed:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
-// Request a password-reset email. Only works for regular users created via
-// Manage Users (with an email on file) — the Super Admin account is
-// env-var based and isn't in the users table, so it's reset manually in
-// Vercel's environment variables, as documented in the README.
+// Request a password-reset email. Works for any account that has an email
+// on file in the Users table — including the Super Admin, once its row has
+// been synced by a successful login (see /login above). Accepts either the
+// username or the email as the identifier.
 // Always responds with the same generic message so this endpoint can't be
 // used to enumerate which usernames/emails exist in the system.
 router.post('/forgot-password', async (req, res) => {
-  const GENERIC = { message: 'If an account with that username exists and has an email on file, a reset link has been sent.' };
+  const GENERIC = { message: 'If an account with that username or email exists and has an email on file, a reset link has been sent.' };
   try {
     const { username } = req.body;
     if (!username || typeof username !== 'string') return res.json(GENERIC);
