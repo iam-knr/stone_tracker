@@ -4,8 +4,8 @@ import { verifyToken, requireAdmin } from '../middleware/auth.js';
 import { sendItemDeletedEmail } from '../services/mailer.js';
 
 const router = express.Router();
-const TASK_HEADERS = ['id','projectId','taskName','description','assignee','taskOwner','priority','status','startDate','dueDate','notes'];
-const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status','archived','sortorder'];
+const TASK_HEADERS = ['id','projectId','taskName','description','assignee','taskOwner','priority','status','startDate','dueDate','notes','checklist'];
+const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status','archived','sortorder','description'];
 
 const VALID_PRIORITIES = ['High', 'Medium', 'Low'];
 const VALID_TASK_STATUSES = ['To Do', 'In Progress', 'Review', 'Done'];
@@ -58,6 +58,30 @@ router.post('/projects', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('POST /projects failed:', err);
     res.status(500).json({ error: 'Could not create project.' });
+  }
+});
+
+// Edit a project's core fields (name, client, description, status, dates).
+// Restricted the same way as delete/archive — Super Admin or Task Owner.
+router.put('/projects/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin' && req.user?.role !== 'task_owner') {
+      return res.status(403).json({ error: 'Only a Super Admin or Task Owner can edit projects.' });
+    }
+    const { id } = req.params;
+    const projects = await readSheet('Projects');
+    const project = projects.find((p) => p.id === id);
+    if (!project || project.deletedat) return res.status(404).json({ error: 'Project not found.' });
+
+    if (req.body.status && !VALID_PROJECT_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ error: `Status must be one of: ${VALID_PROJECT_STATUSES.join(', ')}` });
+    }
+    const updates = sanitizeDates(req.body, ['startDate', 'deadline']);
+    await updateRowById('Projects', 0, id, updates, PROJECT_HEADERS);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PUT /projects/:id failed:', err);
+    res.status(500).json({ error: 'Could not update project.' });
   }
 });
 
@@ -167,7 +191,7 @@ router.post('/tasks', verifyToken, async (req, res) => {
       return res.status(400).json({ error: `Status must be one of: ${VALID_TASK_STATUSES.join(', ')}` });
     }
     const now = new Date().toISOString();
-    const task = { id: Date.now().toString(), createdat: now, updatedat: now, ...sanitizeDates(req.body, ['startDate', 'dueDate']) };
+    const task = { id: Date.now().toString(), createdat: now, updatedat: now, checklist: [], ...sanitizeDates(req.body, ['startDate', 'dueDate']) };
     await appendRow('Tasks', task, TASK_HEADERS);
     res.json({ success: true, id: task.id });
   } catch (err) {
@@ -176,8 +200,9 @@ router.post('/tasks', verifyToken, async (req, res) => {
   }
 });
 
-// Status/notes/etc. can be updated by any authenticated user, but only the
-// Super Admin can transfer a task's ownership or assignee to someone else.
+// Status/notes/description/checklist/etc. can be updated by any authenticated
+// user, but only the Super Admin can transfer a task's ownership or assignee
+// to someone else.
 router.put('/tasks/:id', verifyToken, async (req, res) => {
   try {
     const isTransfer = Object.prototype.hasOwnProperty.call(req.body, 'assignee') ||
@@ -190,6 +215,9 @@ router.put('/tasks/:id', verifyToken, async (req, res) => {
     }
     if (req.body.status && !VALID_TASK_STATUSES.includes(req.body.status)) {
       return res.status(400).json({ error: `Status must be one of: ${VALID_TASK_STATUSES.join(', ')}` });
+    }
+    if (req.body.checklist && !Array.isArray(req.body.checklist)) {
+      return res.status(400).json({ error: '"checklist" must be an array.' });
     }
     const updates = { ...sanitizeDates(req.body, ['startDate', 'dueDate']), updatedat: new Date().toISOString() };
     await updateRowById('Tasks', 0, req.params.id, updates, TASK_HEADERS);
