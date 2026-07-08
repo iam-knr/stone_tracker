@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArchiveBoxIcon, TrashIcon } from './Icons.jsx';
+import { ArchiveBoxIcon, TrashIcon, GripIcon } from './Icons.jsx';
 
 const STATUS_COLORS = {
   'Not Started': 'bg-gray-100 text-gray-500',
@@ -8,7 +8,10 @@ const STATUS_COLORS = {
   'Completed': 'bg-green-50 text-google-green',
 };
 
-export default function ProjectCard({ project, canDelete, onDelete, canArchive, onArchiveToggle }) {
+export default function ProjectCard({
+  project, canDelete, onDelete, canArchive, onArchiveToggle,
+  draggable, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd,
+}) {
   const navigate = useNavigate();
 
   function handleDelete(e) {
@@ -30,13 +33,31 @@ export default function ProjectCard({ project, canDelete, onDelete, canArchive, 
 
   return (
     <div
+      draggable={draggable}
+      onDragStart={draggable ? (e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.(); } : undefined}
+      onDragOver={draggable ? onDragOver : undefined}
+      onDrop={draggable ? (e) => { e.preventDefault(); onDrop?.(); } : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
       onClick={() => navigate(`/project/${project.id}`)}
-      className={`group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 p-5 cursor-pointer ${project.archived ? 'opacity-70' : ''}`}
+      className={`group bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all duration-200 p-5 cursor-pointer ${
+        project.archived ? 'opacity-70' : ''
+      } ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-100 hover:border-gray-200'}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-gray-900 text-[15px] leading-snug truncate">{project.name}</h3>
-          <p className="text-sm text-gray-400 mt-0.5 truncate">{project.client}</p>
+        <div className="min-w-0 flex items-start gap-1.5">
+          {draggable && (
+            <span
+              className="mt-0.5 text-gray-200 group-hover:text-gray-400 transition-colors shrink-0 cursor-grab active:cursor-grabbing"
+              title="Drag to reorder"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripIcon className="w-4 h-4" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <h3 className="font-semibold text-gray-900 text-[15px] leading-snug truncate">{project.name}</h3>
+            <p className="text-sm text-gray-400 mt-0.5 truncate">{project.client}</p>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${statusClass}`}>
