@@ -3,6 +3,9 @@ import Login from './pages/Login.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Projects from './pages/Projects.jsx';
+import Tasks from './pages/Tasks.jsx';
+import Settings from './pages/Settings.jsx';
 import ProjectBoard from './pages/ProjectBoard.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 
@@ -19,8 +22,12 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<Private><Dashboard /></Private>} />
+      <Route path="/projects" element={<Private><Projects /></Private>} />
+      <Route path="/tasks" element={<Private><Tasks /></Private>} />
+      <Route path="/settings" element={<Private><Settings /></Private>} />
       <Route path="/project/:id" element={<Private><ProjectBoard /></Private>} />
       <Route path="/admin/users" element={<Private><AdminOnly><AdminUsers /></AdminOnly></Private>} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
