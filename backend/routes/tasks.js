@@ -4,7 +4,7 @@ import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 const TASK_HEADERS = ['id','projectId','taskName','description','assignee','taskOwner','priority','status','startDate','dueDate','notes'];
-const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status','archived'];
+const PROJECT_HEADERS = ['id','name','client','startDate','deadline','status','archived','sortorder'];
 
 const VALID_PRIORITIES = ['High', 'Medium', 'Low'];
 const VALID_TASK_STATUSES = ['To Do', 'In Progress', 'Review', 'Done'];
@@ -99,6 +99,25 @@ router.patch('/projects/:id/archive', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('PATCH /projects/:id/archive failed:', err);
     res.status(500).json({ error: 'Could not update archive status.' });
+  }
+});
+
+// Persists a manual drag-and-drop reorder of the project cards. Any
+// authenticated user who can see the projects list can reorder it (it's a
+// shared display preference, not a destructive action) — accepts the full
+// list of project ids in their new display order and assigns each one a
+// sequential sortorder value.
+router.post('/projects/reorder', verifyToken, async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== 'string')) {
+      return res.status(400).json({ error: '"orderedIds" must be an array of project ids.' });
+    }
+    await Promise.all(orderedIds.map((id, index) => updateRowById('Projects', 0, id, { sortorder: index }, PROJECT_HEADERS)));
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /projects/reorder failed:', err);
+    res.status(500).json({ error: 'Could not save the new order.' });
   }
 });
 
