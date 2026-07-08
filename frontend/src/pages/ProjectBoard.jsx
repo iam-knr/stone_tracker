@@ -123,6 +123,7 @@ export default function ProjectBoard() {
   return (
     <DashboardShell
       title="Project Board"
+      fullWidth
       subtitle={
         <div className="flex items-center gap-2">
           <button onClick={() => navigate('/projects')} className="text-indigo-600 link-underline">&larr; Back to projects</button>
@@ -164,7 +165,7 @@ export default function ProjectBoard() {
       ) : (
       <div className="flex gap-4 overflow-x-auto animate-fade-in pb-2">
         {COLUMNS.map((col) => (
-          <div key={col} className="min-w-[270px] flex-1">
+          <div key={col} className="min-w-[240px] flex-1">
             <div className="flex items-center gap-2 mb-3">
               <span className={`w-2 h-2 rounded-full ${COLUMN_ACCENTS[col]}`} />
               <h3 className="text-sm font-semibold text-gray-600 tracking-wide">{col}</h3>
