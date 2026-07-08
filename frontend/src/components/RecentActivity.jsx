@@ -10,6 +10,19 @@ function timeAgo(ms) {
   return new Date(ms).toLocaleDateString();
 }
 
+// Best-effort timestamp for an activity item: prefer a real DB timestamp
+// column (updatedat/createdat), fall back to the id itself when it's an
+// epoch-ms string (Date.now().toString(), used for rows created by this
+// app), otherwise treat as unknown (0, filtered out).
+function resolveTs(row, tsField) {
+  if (row[tsField]) {
+    const t = new Date(row[tsField]).getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  const n = Number(row.id);
+  return Number.isFinite(n) && n > 1e12 ? n : 0;
+}
+
 const STATUS_DOT = {
   'Done': 'bg-google-green',
   'In Progress': 'bg-indigo-600',
@@ -37,7 +50,7 @@ export default function RecentActivity({ projects, tasks }) {
 
   const taskEvents = scopedTasks.map((t) => ({
     id: `task-${t.id}`,
-    ts: Number(t.id) || 0,
+    ts: resolveTs(t, 'updatedat'),
     dot: STATUS_DOT[t.status] || 'bg-gray-300',
     title: t.taskName,
     detail: `${t.status === 'Done' ? 'Completed' : t.status} · ${projectByName[t.projectId] || 'Unknown project'}`,
@@ -46,7 +59,7 @@ export default function RecentActivity({ projects, tasks }) {
 
   const projectEvents = scopedProjects.map((p) => ({
     id: `project-${p.id}`,
-    ts: Number(p.id) || 0,
+    ts: resolveTs(p, 'createdat'),
     dot: 'bg-purple-400',
     title: p.name,
     detail: p.archived ? 'Project archived' : 'Project created',
