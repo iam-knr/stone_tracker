@@ -7,6 +7,7 @@ import Preloader from '../components/Preloader.jsx';
 export default function Projects() {
   const role = localStorage.getItem('st_role');
   const canCreateProject = role === 'admin' || role === 'task_owner';
+  const canDeleteProject = role === 'admin' || role === 'task_owner';
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -27,6 +28,15 @@ export default function Projects() {
     load();
   }
 
+  async function handleDelete(id) {
+    try {
+      await api.delete(`/projects/${id}`);
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not delete project.');
+    }
+  }
+
   return (
     <DashboardShell
       title="Projects"
@@ -43,7 +53,9 @@ export default function Projects() {
         <Preloader label="Loading projects…" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-stagger">
-          {projects.map((p) => <ProjectCard key={p.id} project={p} />)}
+          {projects.map((p) => (
+            <ProjectCard key={p.id} project={p} canDelete={canDeleteProject} onDelete={handleDelete} />
+          ))}
           {projects.length === 0 && (
             <p className="text-gray-400 col-span-full text-center mt-10">
               {role === 'task_assignee' ? 'No tasks have been assigned to you yet.' : 'No projects yet. Tap + New Project to add one.'}

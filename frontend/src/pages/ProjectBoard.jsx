@@ -24,13 +24,17 @@ export default function ProjectBoard() {
   const { id } = useParams();
   const navigate = useNavigate();
   const role = localStorage.getItem('st_role');
+  const username = localStorage.getItem('st_username');
   const isAdmin = role === 'admin';
+  const isTaskOwner = role === 'task_owner';
+  const canDeleteProject = isAdmin || isTaskOwner;
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [transferTaskId, setTransferTaskId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deletingProject, setDeletingProject] = useState(false);
 
   const owners = users.filter((u) => u.role === 'task_owner' || u.role === 'admin');
   const assignees = users.filter((u) => u.role === 'task_assignee' || u.role === 'admin');
@@ -68,6 +72,33 @@ export default function ProjectBoard() {
     load();
   }
 
+  function canDeleteTask(t) {
+    return isAdmin || (isTaskOwner && t.taskOwner === username);
+  }
+
+  async function deleteTask(taskId, taskName) {
+    if (!window.confirm(`Delete task "${taskName}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not delete task.');
+    }
+  }
+
+  async function deleteProject() {
+    if (!window.confirm('Delete this entire project? This will also delete all of its tasks. This cannot be undone.')) return;
+    setDeletingProject(true);
+    try {
+      await api.delete(`/projects/${id}`);
+      navigate('/projects');
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not delete project.');
+    } finally {
+      setDeletingProject(false);
+    }
+  }
+
   return (
     <DashboardShell
       title="Project Board"
@@ -75,9 +106,16 @@ export default function ProjectBoard() {
         <button onClick={() => navigate('/projects')} className="text-indigo-600 link-underline">&larr; Back to projects</button>
       }
       actions={
-        <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
-          <span className="text-lg leading-none">+</span> New Task
-        </button>
+        <div className="flex items-center gap-3">
+          {canDeleteProject && (
+            <button onClick={deleteProject} disabled={deletingProject} className="text-google-red text-sm font-medium link-underline disabled:opacity-60">
+              {deletingProject ? 'Deleting…' : 'Delete Project'}
+            </button>
+          )}
+          <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
+            <span className="text-lg leading-none">+</span> New Task
+          </button>
+        </div>
       }
     >
       {loading ? (
@@ -96,7 +134,9 @@ export default function ProjectBoard() {
                 <div key={t.id} className="bg-white rounded-xl shadow-card p-3 hover-lift border-l-4" style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}>
                   <div className="flex justify-between items-start mb-1">
                     <p className="font-medium text-sm text-gray-800">{t.taskName}</p>
-                    <PriorityBadge priority={t.priority} />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <PriorityBadge priority={t.priority} />
+                    </div>
                   </div>
                   {t.description && <p className="text-xs text-gray-500 mb-1">{t.description}</p>}
                   <p className="text-xs text-gray-500">Assignee: {t.assignee}</p>
@@ -109,7 +149,7 @@ export default function ProjectBoard() {
                   </select>
                   {isAdmin && (
                     transferTaskId === t.id ? (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 mb-2">
                         <select defaultValue={t.taskOwner} onChange={(e) => transferTask(t.id, 'taskOwner', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
                           <option value="">Reassign owner...</option>
                           {owners.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
@@ -121,8 +161,11 @@ export default function ProjectBoard() {
                         <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
                       </div>
                     ) : (
-                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline">Transfer ownership/assignee</button>
+                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline block mb-1">Transfer ownership/assignee</button>
                     )
+                  )}
+                  {canDeleteTask(t) && (
+                    <button onClick={() => deleteTask(t.id, t.taskName)} className="text-xs text-google-red font-medium link-underline">Delete task</button>
                   )}
                 </div>
               ))}
