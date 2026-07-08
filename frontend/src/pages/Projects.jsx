@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
+import ProjectDetailModal from '../components/ProjectDetailModal.jsx';
 import Preloader from '../components/Preloader.jsx';
 
 export default function Projects() {
@@ -12,6 +13,7 @@ export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [expandedProject, setExpandedProject] = useState(null);
   const [view, setView] = useState('active'); // 'active' | 'archived'
   const [form, setForm] = useState({ name: '', client: '', startDate: '', deadline: '', status: 'Not Started' });
   const [dragId, setDragId] = useState(null);
@@ -142,6 +144,7 @@ export default function Projects() {
               onDelete={handleDelete}
               canArchive={canArchiveProject}
               onArchiveToggle={handleArchiveToggle}
+              onExpand={setExpandedProject}
               draggable={canReorder}
               isDragging={dragId === p.id}
               isDragOver={canReorder && overId === p.id && dragId !== p.id}
@@ -186,6 +189,15 @@ export default function Projects() {
             </div>
           </form>
         </div>
+      )}
+
+      {expandedProject && (
+        <ProjectDetailModal
+          project={expandedProject}
+          onClose={() => setExpandedProject(null)}
+          onSaved={load}
+          canEdit={canCreateProject}
+        />
       )}
     </DashboardShell>
   );

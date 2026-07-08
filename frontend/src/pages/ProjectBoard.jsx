@@ -4,7 +4,9 @@ import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
 import Preloader from '../components/Preloader.jsx';
-import { ArchiveBoxIcon, TrashIcon } from '../components/Icons.jsx';
+import TaskDetailModal from '../components/TaskDetailModal.jsx';
+import ProjectDetailModal from '../components/ProjectDetailModal.jsx';
+import { ArchiveBoxIcon, TrashIcon, ExpandIcon } from '../components/Icons.jsx';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
 const COLUMN_ACCENTS = {
@@ -29,10 +31,13 @@ export default function ProjectBoard() {
   const isAdmin = role === 'admin';
   const isTaskOwner = role === 'task_owner';
   const canDeleteProject = isAdmin || isTaskOwner;
+  const canEditProject = isAdmin || isTaskOwner;
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [project, setProject] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showProjectInfo, setShowProjectInfo] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [transferTaskId, setTransferTaskId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +135,15 @@ export default function ProjectBoard() {
           {project?.archived && (
             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Archived</span>
           )}
+          {project && (
+            <button
+              onClick={() => setShowProjectInfo(true)}
+              title="View project details"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            >
+              <ExpandIcon className="w-[14px] h-[14px]" />
+            </button>
+          )}
         </div>
       }
       actions={
@@ -173,10 +187,15 @@ export default function ProjectBoard() {
             </div>
             <div className="space-y-3 animate-stagger">
               {tasks.filter(t => t.status === col).map((t) => (
-                <div key={t.id} className="group bg-white rounded-xl shadow-card p-3 hover-lift border-l-4" style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}>
+                <div
+                  key={t.id}
+                  onClick={() => setSelectedTask(t)}
+                  className="group bg-white rounded-xl shadow-card p-3 hover-lift border-l-4 cursor-pointer"
+                  style={{ borderLeftColor: COLUMN_ACCENT_HEX[col] }}
+                >
                   <div className="flex justify-between items-start mb-1 gap-2">
                     <p className="font-medium text-sm text-gray-800">{t.taskName}</p>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <PriorityBadge priority={t.priority} />
                       {canDeleteTask(t) && (
                         <button
@@ -189,32 +208,39 @@ export default function ProjectBoard() {
                       )}
                     </div>
                   </div>
-                  {t.description && <p className="text-xs text-gray-500 mb-1">{t.description}</p>}
+                  {t.description && <p className="text-xs text-gray-500 mb-1 line-clamp-2">{t.description.split('\n')[0]}</p>}
+                  {Array.isArray(t.checklist) && t.checklist.length > 0 && (
+                    <p className="text-xs text-gray-400 mb-1">
+                      ☑ {t.checklist.filter((c) => c.done).length}/{t.checklist.length} subtasks
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">Assignee: {t.assignee}</p>
                   <p className="text-xs text-gray-500">Owner: {t.taskOwner}</p>
                   {t.startDate && <p className="text-xs text-gray-400">Start: {t.startDate}</p>}
                   <p className="text-xs text-gray-400 mb-2">Due: {t.dueDate || '—'}</p>
-                  <select value={t.status} onChange={(e) => moveTask(t.id, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-                    {COLUMNS.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                  {isAdmin && (
-                    transferTaskId === t.id ? (
-                      <div className="flex flex-col gap-1 mb-2">
-                        <select defaultValue={t.taskOwner} onChange={(e) => transferTask(t.id, 'taskOwner', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
-                          <option value="">Reassign owner...</option>
-                          {owners.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-                        </select>
-                        <select defaultValue={t.assignee} onChange={(e) => transferTask(t.id, 'assignee', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
-                          <option value="">Reassign assignee...</option>
-                          {assignees.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-                        </select>
-                        <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline block mb-1">Transfer ownership/assignee</button>
-                    )
-                  )}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <select value={t.status} onChange={(e) => moveTask(t.id, e.target.value)}
+                      className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+                      {COLUMNS.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                    {isAdmin && (
+                      transferTaskId === t.id ? (
+                        <div className="flex flex-col gap-1 mb-2">
+                          <select defaultValue={t.taskOwner} onChange={(e) => transferTask(t.id, 'taskOwner', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
+                            <option value="">Reassign owner...</option>
+                            {owners.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
+                          </select>
+                          <select defaultValue={t.assignee} onChange={(e) => transferTask(t.id, 'assignee', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
+                            <option value="">Reassign assignee...</option>
+                            {assignees.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
+                          </select>
+                          <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline block mb-1">Transfer ownership/assignee</button>
+                      )
+                    )}
+                  </div>
                 </div>
               ))}
               {tasks.filter(t => t.status === col).length === 0 && (
@@ -285,6 +311,23 @@ export default function ProjectBoard() {
             </div>
           </form>
         </div>
+      )}
+
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onSaved={load}
+        />
+      )}
+
+      {showProjectInfo && project && (
+        <ProjectDetailModal
+          project={project}
+          onClose={() => setShowProjectInfo(false)}
+          onSaved={loadProject}
+          canEdit={canEditProject}
+        />
       )}
     </DashboardShell>
   );
