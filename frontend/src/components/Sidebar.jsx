@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, CrownIcon, BriefcaseIcon, UserIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon } from './Icons.jsx';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
@@ -14,19 +14,10 @@ const ROLE_LABELS = {
   task_assignee: 'Task Assignee',
 };
 
-// Each role gets its own icon in the brand mark (replacing the generic "St"
-// monogram) so at a glance you can tell which kind of account is signed in.
-const ROLE_ICONS = {
-  admin: CrownIcon,
-  task_owner: BriefcaseIcon,
-  task_assignee: UserIcon,
-};
-
 export default function Sidebar() {
   const navigate = useNavigate();
   const role = localStorage.getItem('st_role');
   const username = localStorage.getItem('st_username');
-  const RoleIcon = ROLE_ICONS[role] || GridIcon;
 
   function logout() {
     localStorage.clear();
@@ -36,9 +27,7 @@ export default function Sidebar() {
   return (
     <aside className="hidden sm:flex sm:flex-col w-64 shrink-0 bg-white border-r border-gray-100 h-screen sticky top-0">
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-          <RoleIcon className="w-5 h-5" />
-        </div>
+        <img src="/logo.png" alt="Stone Tracker" className="w-9 h-9 rounded-lg shadow-sm shrink-0" />
         <div className="min-w-0">
           <p className="text-base font-semibold text-gray-900 leading-tight truncate">Stone Tracker</p>
           {username && <p className="text-xs font-medium text-gray-600 leading-tight truncate mt-0.5">{username}</p>}

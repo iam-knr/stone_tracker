@@ -77,37 +77,24 @@ export function PlusIcon(props) {
   );
 }
 
-// Role icons — shown in the sidebar/topbar brand mark in place of the
-// generic "St" monogram, so the icon itself hints at who's signed in.
-
-// Super Admin: a crown.
-export function CrownIcon(props) {
+// Small action icons used for card-level controls (archive / delete).
+export function TrashIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 8.5 8 12l4-6 4 6 4-3.5-1.4 9.5a1 1 0 0 1-1 .9H6.4a1 1 0 0 1-1-.9L4 8.5Z" />
-      <path d="M6.6 19.5h10.8" />
+      <path d="M4.5 7h15" />
+      <path d="M9.5 7V5.2a1.2 1.2 0 0 1 1.2-1.2h2.6a1.2 1.2 0 0 1 1.2 1.2V7" />
+      <path d="M6.5 7 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7" />
+      <path d="M10.3 11v6.2M13.7 11v6.2" />
     </svg>
   );
 }
 
-// Task Owner: a briefcase.
-export function BriefcaseIcon(props) {
+export function ArchiveBoxIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="3" y="7.5" width="18" height="11.5" rx="1.6" />
-      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" />
-      <path d="M3 12.5h18" />
-      <path d="M10.7 12.5h2.6v1.8h-2.6z" />
-    </svg>
-  );
-}
-
-// Task Assignee: a person / user badge.
-export function UserIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="8.3" r="3.3" />
-      <path d="M4.8 19.8a7.2 7.2 0 0 1 14.4 0" />
+      <rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2" />
+      <path d="M4.5 9.5V18a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V9.5" />
+      <path d="M10 13.2h4" />
     </svg>
   );
 }
