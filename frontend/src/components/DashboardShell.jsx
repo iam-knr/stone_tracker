@@ -61,13 +61,13 @@ function MobileTopBar() {
   );
 }
 
-export default function DashboardShell({ title, subtitle, actions, children }) {
+export default function DashboardShell({ title, subtitle, actions, children, fullWidth }) {
   return (
     <div className="min-h-screen flex bg-gray-50">
       <Sidebar />
       <div className="flex-1 min-w-0">
         <MobileTopBar />
-        <main className="max-w-6xl mx-auto p-5 sm:p-8">
+        <main className={`mx-auto p-5 sm:p-8 ${fullWidth ? 'max-w-full' : 'max-w-6xl'}`}>
           {(title || actions) && (
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-7">
               <div>
