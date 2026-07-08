@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArchiveBoxIcon, TrashIcon, GripIcon } from './Icons.jsx';
+import { ArchiveBoxIcon, TrashIcon, GripIcon, ExpandIcon } from './Icons.jsx';
 
 const STATUS_COLORS = {
   'Not Started': 'bg-gray-100 text-gray-500',
@@ -9,7 +9,7 @@ const STATUS_COLORS = {
 };
 
 export default function ProjectCard({
-  project, canDelete, onDelete, canArchive, onArchiveToggle,
+  project, canDelete, onDelete, canArchive, onArchiveToggle, onExpand,
   draggable, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd,
 }) {
   const navigate = useNavigate();
@@ -25,6 +25,11 @@ export default function ProjectCard({
     const willArchive = !project.archived;
     if (willArchive && !window.confirm(`Archive project "${project.name}"? It will be hidden from the active list until you unarchive it.`)) return;
     onArchiveToggle?.(project.id, willArchive);
+  }
+
+  function handleExpand(e) {
+    e.stopPropagation();
+    onExpand?.(project);
   }
 
   const showActions = canArchive || canDelete;
@@ -63,28 +68,33 @@ export default function ProjectCard({
           <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${statusClass}`}>
             {statusLabel}
           </span>
-          {showActions && (
-            <div className="flex items-center gap-0.5 pl-1 border-l border-gray-100 ml-0.5">
-              {canArchive && (
-                <button
-                  onClick={handleArchiveToggle}
-                  title={project.archived ? 'Unarchive project' : 'Archive project'}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                >
-                  <ArchiveBoxIcon className="w-[15px] h-[15px]" />
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={handleDelete}
-                  title="Delete project"
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-google-red transition-colors"
-                >
-                  <TrashIcon className="w-[15px] h-[15px]" />
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-0.5 pl-1 border-l border-gray-100 ml-0.5">
+            <button
+              onClick={handleExpand}
+              title="View details"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            >
+              <ExpandIcon className="w-[15px] h-[15px]" />
+            </button>
+            {canArchive && (
+              <button
+                onClick={handleArchiveToggle}
+                title={project.archived ? 'Unarchive project' : 'Archive project'}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+              >
+                <ArchiveBoxIcon className="w-[15px] h-[15px]" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                title="Delete project"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-google-red transition-colors"
+              >
+                <TrashIcon className="w-[15px] h-[15px]" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-between text-xs text-gray-400 mt-4 pt-3 border-t border-gray-50">
