@@ -145,4 +145,21 @@ export async function sendMidnightSummaryEmail(recipients, { projects, tasks }) 
   });
 }
 
+// Sent to the Super Admin (ADMIN_NOTIFY_EMAIL) whenever a project or task is
+// deleted. Deleted items are soft-deleted and recoverable for 30 days from
+// Admin > Deleted Items, which this email links the admin toward.
+export async function sendItemDeletedEmail(toEmail, { type, name, projectName, deletedBy }) {
+  const label = type === 'project' ? 'Project' : 'Task';
+  await send({
+    to: toEmail,
+    subject: `${label} deleted: ${name}`,
+    text: `${label} "${name}"${projectName ? ` (in ${projectName})` : ''} was deleted by ${deletedBy || 'a user'}. It can be recovered from Admin > Deleted Items within 30 days, after which it is permanently removed.`,
+    html: wrap(`${label} deleted`, `
+      <p><strong>${name}</strong>${projectName ? ` — ${projectName}` : ''}</p>
+      <p style="color:#5f6368;font-size:13px;">Deleted by ${deletedBy || 'a user'}.</p>
+      <p style="font-size:13px;">This item is kept in <strong>Deleted Items</strong> for 30 days and can be restored by a Super Admin during that window. After 30 days it is permanently removed.</p>
+    `),
+  });
+}
+
 export default getTransporter;
