@@ -30,6 +30,7 @@ export default function ProjectBoard() {
   const username = localStorage.getItem('st_username');
   const isAdmin = role === 'admin';
   const isTaskOwner = role === 'task_owner';
+  const isTaskAssignee = role === 'task_assignee';
   const canDeleteProject = isAdmin || isTaskOwner;
   const canEditProject = isAdmin || isTaskOwner;
   const [tasks, setTasks] = useState([]);
@@ -45,7 +46,11 @@ export default function ProjectBoard() {
   const [archiving, setArchiving] = useState(false);
 
   const owners = users.filter((u) => u.role === 'task_owner' || u.role === 'admin');
-  const assignees = users.filter((u) => u.role === 'task_assignee' || u.role === 'admin');
+  // Assignees are strictly task_assignee accounts — admins and task owners should
+  // never show up as an assignable person in this dropdown.
+  const assignees = users.filter((u) => u.role === 'task_assignee');
+  // A Task Assignee creating a task can only ever assign it to themselves.
+  const assigneeOptions = isTaskAssignee ? users.filter((u) => u.username === username) : assignees;
 
   async function load() {
     const { data } = await api.get(`/tasks?projectId=${id}`);
@@ -168,7 +173,7 @@ export default function ProjectBoard() {
               {deletingProject ? 'Deleting…' : 'Delete'}
             </button>
           )}
-          <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
+          <button onClick={() => { if (isTaskAssignee) setForm((f) => ({ ...f, assignee: username })); setShowModal(true); }} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
             <span className="text-lg leading-none">+</span> New Task
           </button>
         </div>
@@ -268,10 +273,10 @@ export default function ProjectBoard() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" rows={2} />
 
             <label className="block text-xs text-gray-500 mb-1">Assignee</label>
-            <select required value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm">
+            <select required disabled={isTaskAssignee} value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm disabled:bg-gray-100 disabled:text-gray-500">
               <option value="">Select assignee...</option>
-              {assignees.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
+              {assigneeOptions.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
             </select>
 
             <label className="block text-xs text-gray-500 mb-1">Task Owner</label>
