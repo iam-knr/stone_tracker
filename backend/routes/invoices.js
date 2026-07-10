@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   companyEmail: '',
   companyPhone: '',
   companyAddress: '',
+  companyGstin: '',
   currencySymbol: '$',
   nextInvoiceNumber: 1,
 };
@@ -57,10 +58,10 @@ router.get('/invoices/settings', verifyToken, requireInvoiceAccess, async (req, 
 
 router.put('/invoices/settings', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { companyName, companyEmail, companyPhone, companyAddress, currencySymbol } = req.body;
+    const { companyName, companyEmail, companyPhone, companyAddress, companyGstin, currencySymbol } = req.body;
     const rows = await readSheet('InvoiceSettings');
     const existing = rows.find((r) => r.id === 'default');
-    const updates = { companyName, companyEmail, companyPhone, companyAddress, currencySymbol };
+    const updates = { companyName, companyEmail, companyPhone, companyAddress, companyGstin, currencySymbol };
     if (existing) {
       await updateRowById('InvoiceSettings', 0, 'default', updates);
     } else {
