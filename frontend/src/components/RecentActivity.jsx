@@ -1,3 +1,5 @@
+import { formatList, includesUser } from '../utils/people.js';
+
 function timeAgo(ms) {
   const diff = Date.now() - ms;
   const mins = Math.floor(diff / 60000);
@@ -40,7 +42,7 @@ export default function RecentActivity({ projects, tasks }) {
 
   const scopedTasks = role === 'admin'
     ? tasks
-    : tasks.filter((t) => t.assignee === username || t.taskOwner === username);
+    : tasks.filter((t) => includesUser(t.assignee, username) || includesUser(t.taskOwner, username));
   const scopedProjectIds = new Set(scopedTasks.map((t) => t.projectId));
   const scopedProjects = role === 'admin'
     ? projects
@@ -54,7 +56,7 @@ export default function RecentActivity({ projects, tasks }) {
     dot: STATUS_DOT[t.status] || 'bg-gray-300',
     title: t.taskName,
     detail: `${t.status === 'Done' ? 'Completed' : t.status} · ${projectByName[t.projectId] || 'Unknown project'}`,
-    who: t.assignee || t.taskOwner || 'Unassigned',
+    who: formatList(t.assignee) !== '—' ? formatList(t.assignee) : (formatList(t.taskOwner) !== '—' ? formatList(t.taskOwner) : 'Unassigned'),
   }));
 
   const projectEvents = scopedProjects.map((p) => ({

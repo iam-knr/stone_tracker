@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import StatCard from './StatCard.jsx';
 import { FolderIcon, ChecklistIcon, WarningIcon } from './Icons.jsx';
+import { formatList } from '../utils/people.js';
 
 const STATUS_ORDER = ['To Do', 'In Progress', 'Review', 'Done'];
 const STATUS_COLORS = {
@@ -111,7 +112,7 @@ export default function AdminOverview({ projects, tasks }) {
                 >
                   <div className="min-w-0">
                     <p className="text-gray-800 font-medium truncate">{t.taskName}</p>
-                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {t.assignee}</p>
+                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {formatList(t.assignee)}</p>
                   </div>
                   <span className={`text-xs font-medium whitespace-nowrap ml-2 ${t.kind === 'overdue' ? 'text-google-red' : 'text-yellow-700'}`}>
                     {t.kind === 'overdue'
@@ -177,7 +178,7 @@ export default function AdminOverview({ projects, tasks }) {
                 <div key={t.id} className="flex justify-between items-center text-sm bg-white rounded-xl px-3 py-2.5 hover-lift">
                   <div className="min-w-0">
                     <p className="text-gray-800 font-medium truncate">{t.taskName}</p>
-                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {t.assignee}</p>
+                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {formatList(t.assignee)}</p>
                   </div>
                   <span className="text-xs text-yellow-700 font-medium whitespace-nowrap ml-2">
                     {t.daysLeft === 0 ? 'Due today' : `${t.daysLeft} day${t.daysLeft !== 1 ? 's' : ''} left`}
@@ -198,7 +199,7 @@ export default function AdminOverview({ projects, tasks }) {
                 <div key={t.id} className="flex justify-between items-center text-sm bg-white rounded-xl px-3 py-2.5 hover-lift">
                   <div className="min-w-0">
                     <p className="text-gray-800 font-medium truncate">{t.taskName}</p>
-                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {t.assignee}</p>
+                    <p className="text-xs text-gray-400 truncate">{projectByName[t.projectId] || 'Unknown project'} · {formatList(t.assignee)}</p>
                   </div>
                   <span className="text-xs text-google-red font-medium whitespace-nowrap ml-2">
                     {t.daysOverdue} day{t.daysOverdue !== 1 ? 's' : ''} overdue

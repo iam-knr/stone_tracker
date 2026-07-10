@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api.js';
 import { ActivityIcon, TrashIcon } from './Icons.jsx';
+import { formatList, includesUser } from '../utils/people.js';
 
 function timeAgo(ms) {
   const diff = Date.now() - ms;
@@ -64,7 +65,7 @@ export default function ActivityDrawer() {
     if (open && !loaded) load();
   }, [open]);
 
-  const scopedTasks = role === 'admin' ? tasks : tasks.filter((t) => t.assignee === username || t.taskOwner === username);
+  const scopedTasks = role === 'admin' ? tasks : tasks.filter((t) => includesUser(t.assignee, username) || includesUser(t.taskOwner, username));
   const scopedProjectIds = new Set(scopedTasks.map((t) => t.projectId));
   const scopedProjects = role === 'admin' ? projects : projects.filter((p) => scopedProjectIds.has(p.id));
   const projectByName = Object.fromEntries(projects.map((p) => [p.id, p.name]));
@@ -75,7 +76,7 @@ export default function ActivityDrawer() {
     dot: STATUS_DOT[t.status] || 'bg-gray-300',
     title: t.taskName,
     detail: `${t.status === 'Done' ? 'Completed' : t.status} · ${projectByName[t.projectId] || 'Unknown project'}`,
-    who: t.assignee || t.taskOwner || 'Unassigned',
+    who: formatList(t.assignee) !== '—' ? formatList(t.assignee) : (formatList(t.taskOwner) !== '—' ? formatList(t.taskOwner) : 'Unassigned'),
   }));
 
   const projectEvents = scopedProjects.map((p) => ({
@@ -88,7 +89,7 @@ export default function ActivityDrawer() {
   }));
 
   const deletionEvents = trash
-    .filter((item) => role === 'admin' || (item.type === 'task' && (item.assignee === username || item.taskOwner === username)))
+    .filter((item) => role === 'admin' || (item.type === 'task' && (includesUser(item.assignee, username) || includesUser(item.taskOwner, username))))
     .map((item) => ({
       id: `deleted-${item.type}-${item.id}`,
       ts: new Date(item.deletedat).getTime(),

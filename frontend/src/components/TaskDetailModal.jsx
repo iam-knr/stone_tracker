@@ -2,6 +2,7 @@ import { useState } from 'react';
 import api from '../api.js';
 import PriorityBadge from './PriorityBadge.jsx';
 import RichTextField from './RichTextField.jsx';
+import { formatList } from '../utils/people.js';
 
 const STATUSES = ['To Do', 'In Progress', 'Review', 'Done'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
@@ -100,8 +101,8 @@ export default function TaskDetailModal({ task, onClose, onSaved }) {
         </div>
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <PriorityBadge priority={priority} />
-          <span className="text-xs text-gray-400">Assignee: {task.assignee || '—'}</span>
-          <span className="text-xs text-gray-400">Owner: {task.taskOwner || '—'}</span>
+          <span className="text-xs text-gray-400">Assignee: {formatList(task.assignee)}</span>
+          <span className="text-xs text-gray-400">Owner: {formatList(task.taskOwner)}</span>
           {task.startDate && <span className="text-xs text-gray-400">Start {task.startDate}</span>}
           {task.dueDate && <span className="text-xs text-gray-400">Due {task.dueDate}</span>}
         </div>
