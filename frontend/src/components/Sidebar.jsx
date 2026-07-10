@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon, ReceiptIcon } from './Icons.jsx';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
@@ -23,6 +23,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const role = localStorage.getItem('st_role');
   const username = localStorage.getItem('st_username');
+  const canAccessInvoices = role === 'admin' || localStorage.getItem('st_can_invoices') === 'true';
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('st_sidebar_collapsed') === '1');
 
   function logout() {
@@ -82,6 +83,21 @@ export default function Sidebar() {
             {!collapsed && label}
           </NavLink>
         ))}
+
+        {canAccessInvoices && (
+          <NavLink
+            to="/invoices"
+            title={collapsed ? 'Invoices' : undefined}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                collapsed ? 'justify-center px-0' : ''
+              } ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`
+            }
+          >
+            <ReceiptIcon className="w-[18px] h-[18px] shrink-0" />
+            {!collapsed && 'Invoices'}
+          </NavLink>
+        )}
 
         {role === 'admin' && (
           <>
