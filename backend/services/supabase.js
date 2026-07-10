@@ -14,6 +14,8 @@ const TABLE_MAP = {
   Users: 'users',
   Projects: 'projects',
   Tasks: 'tasks',
+  Invoices: 'invoices',
+  InvoiceSettings: 'invoice_settings',
 };
 
 export async function readSheet(tabName) {

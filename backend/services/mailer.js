@@ -54,6 +54,49 @@ function wrap(title, bodyHtml) {
   `;
 }
 
+// Dedicated invoice sender — unlike the generic send() helper above (which
+// intentionally swallows failures for anti-enumeration reasons on
+// password-reset emails), this THROWS on failure so the "Send Invoice"
+// button in the UI can tell the user it actually failed rather than
+// silently pretending it worked.
+export async function sendInvoiceEmail({ toEmail, ccEmails, invoice, companySettings, pdfBuffer }) {
+  const t = getTransporter();
+  if (!t) {
+    throw new Error('Email is not configured on the server (EMAIL_USER / EMAIL_APP_PASSWORD missing).');
+  }
+  if (!toEmail) {
+    throw new Error('This invoice has no client email address to send to.');
+  }
+  const companyName = companySettings?.companyName || 'Stone Tracker';
+  const { total } = (await import('./invoicePdf.js')).computeInvoiceTotals(invoice);
+  const currency = companySettings?.currencySymbol || '$';
+  const subject = `Invoice ${invoice.invoiceNumber || ''} from ${companyName}`;
+  const text = `Hi ${invoice.clientName || ''},
+
+Please find attached invoice ${invoice.invoiceNumber || ''} for ${currency}${total.toFixed(2)}, due ${invoice.dueDate || 'on receipt'}.
+
+Thank you,
+${companyName}`;
+  const html = wrap(`Invoice ${invoice.invoiceNumber || ''}`, `
+    <p>Hi ${invoice.clientName || ''},</p>
+    <p>Please find your invoice attached.</p>
+    <table style="border-collapse:collapse;font-size:14px;margin:16px 0;">
+      <tr><td style="padding:4px 0;color:#5f6368;">Amount Due</td><td style="padding:4px 0;font-weight:600;">${currency}${total.toFixed(2)}</td></tr>
+      <tr><td style="padding:4px 0;color:#5f6368;">Due Date</td><td style="padding:4px 0;">${invoice.dueDate || 'On receipt'}</td></tr>
+    </table>
+    <p style="color:#5f6368;font-size:13px;">Thank you for your business.</p>
+  `);
+  await t.sendMail({
+    from: `"${companyName}" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    cc: Array.isArray(ccEmails) && ccEmails.length ? ccEmails : undefined,
+    subject,
+    text,
+    html,
+    attachments: [{ filename: `${invoice.invoiceNumber || 'invoice'}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+  });
+}
+
 export async function sendPasswordResetEmail(toEmail, resetUrl) {
   await send({
     to: toEmail,
