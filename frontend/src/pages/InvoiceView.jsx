@@ -120,6 +120,7 @@ export default function InvoiceView() {
             <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{settings.companyAddress}</p>
             <p className="text-xs text-gray-500">{settings.companyEmail}</p>
             <p className="text-xs text-gray-500">{settings.companyPhone}</p>
+            {settings.companyGstin && <p className="text-xs text-gray-500">GSTIN: {settings.companyGstin}</p>}
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-indigo-600 tracking-wide">INVOICE</p>
@@ -134,6 +135,7 @@ export default function InvoiceView() {
           <p className="text-sm text-gray-800">{invoice.clientName}</p>
           <p className="text-xs text-gray-500 whitespace-pre-line">{invoice.clientAddress}</p>
           <p className="text-xs text-gray-500">{invoice.clientEmail}</p>
+          {invoice.clientGstin && <p className="text-xs text-gray-500">GSTIN: {invoice.clientGstin}</p>}
         </div>
 
         <table className="w-full text-sm mb-6">

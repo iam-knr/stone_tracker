@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   clientName: '',
   clientEmail: '',
   clientAddress: '',
+  clientGstin: '',
   issueDate: '',
   dueDate: '',
   lineItems: [{ ...EMPTY_LINE }],
@@ -126,6 +127,12 @@ export default function InvoiceEditor() {
             <label className="block text-xs text-gray-500 mb-1">Client Address</label>
             <textarea value={form.clientAddress || ''} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" rows={2} />
+          </div>
+          <div className="mt-4">
+            <label className="block text-xs text-gray-500 mb-1">Client GSTIN</label>
+            <input value={form.clientGstin || ''} onChange={(e) => setForm({ ...form, clientGstin: e.target.value })}
+              placeholder="e.g. 29AAAAA0000A1Z5"
+              className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
 

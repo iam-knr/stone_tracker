@@ -48,6 +48,11 @@ function SettingsModal({ initial, onClose, onSaved }) {
         <label className="block text-xs text-gray-500 mb-1">Address</label>
         <textarea value={form.companyAddress || ''} onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" rows={2} />
+        <label className="block text-xs text-gray-500 mb-1">GSTIN</label>
+        <input value={form.companyGstin || ''} onChange={(e) => setForm({ ...form, companyGstin: e.target.value })}
+          placeholder="e.g. 22AAAAA0000A1Z5"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
+        <p className="text-[11px] text-gray-400 -mt-2 mb-3">Set once here — only a Super Admin can change your company's GSTIN.</p>
         <label className="block text-xs text-gray-500 mb-1">Currency Symbol</label>
         <input value={form.currencySymbol || '$'} onChange={(e) => setForm({ ...form, currencySymbol: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-sm" />
