@@ -18,3 +18,14 @@ export function requireAdmin(req, res, next) {
   }
   next();
 }
+
+// Invoicing is a separate, opt-in permission from the role system: the
+// Super Admin can grant/revoke it per-user (see PUT /users/:id/invoice-access),
+// independent of whether that person is a Task Owner or Task Assignee.
+// Admin always has access regardless of the flag.
+export function requireInvoiceAccess(req, res, next) {
+  if (req.user?.role === 'admin' || req.user?.canAccessInvoices === true) {
+    return next();
+  }
+  return res.status(403).json({ error: 'You do not have access to Invoices. Ask your Super Admin to grant access.' });
+}
