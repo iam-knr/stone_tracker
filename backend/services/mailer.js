@@ -36,6 +36,14 @@ async function send({ to, subject, text, html }) {
   }
 }
 
+// assignee/taskOwner are lists of usernames now — format them as a
+// human-readable comma-separated string (falls back to a single legacy
+// string value, or an em-dash if nobody's set).
+function fmtPeople(v) {
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+  return v || '—';
+}
+
 function wrap(title, bodyHtml) {
   return `
     <div style="font-family:Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#202124;">
@@ -64,15 +72,15 @@ export async function sendPasswordResetEmail(toEmail, resetUrl) {
 export async function sendTaskCreatedEmail(recipients, task, projectName) {
   const rows = `
     <tr><td style="padding:4px 0;color:#5f6368;">Project</td><td style="padding:4px 0;">${projectName || '—'}</td></tr>
-    <tr><td style="padding:4px 0;color:#5f6368;">Owner</td><td style="padding:4px 0;">${task.taskOwner || '—'}</td></tr>
-    <tr><td style="padding:4px 0;color:#5f6368;">Assignee</td><td style="padding:4px 0;">${task.assignee || '—'}</td></tr>
+    <tr><td style="padding:4px 0;color:#5f6368;">Owner</td><td style="padding:4px 0;">${fmtPeople(task.taskOwner)}</td></tr>
+    <tr><td style="padding:4px 0;color:#5f6368;">Assignee</td><td style="padding:4px 0;">${fmtPeople(task.assignee)}</td></tr>
     <tr><td style="padding:4px 0;color:#5f6368;">Priority</td><td style="padding:4px 0;">${task.priority || '—'}</td></tr>
     <tr><td style="padding:4px 0;color:#5f6368;">Due</td><td style="padding:4px 0;">${task.dueDate || '—'}</td></tr>
   `;
   await send({
     to: recipients,
     subject: `New task created: ${task.taskName}`,
-    text: `A new task "${task.taskName}" was created in ${projectName || 'a project'}. Owner: ${task.taskOwner}. Assignee: ${task.assignee}. Due: ${task.dueDate || 'no due date'}.`,
+    text: `A new task "${task.taskName}" was created in ${projectName || 'a project'}. Owner: ${fmtPeople(task.taskOwner)}. Assignee: ${fmtPeople(task.assignee)}. Due: ${task.dueDate || 'no due date'}.`,
     html: wrap('New task created', `
       <p><strong>${task.taskName}</strong>${task.description ? ` — ${task.description}` : ''}</p>
       <table style="border-collapse:collapse;font-size:14px;">${rows}</table>
@@ -88,7 +96,7 @@ export async function sendTaskStatusChangedEmail(recipients, task, projectName, 
     html: wrap('Task status updated', `
       <p><strong>${task.taskName}</strong> in ${projectName || 'a project'}</p>
       <p style="font-size:15px;">${oldStatus} &rarr; <strong style="color:#1a73e8;">${newStatus}</strong></p>
-      <p style="color:#5f6368;font-size:13px;">Owner: ${task.taskOwner || '—'} &middot; Assignee: ${task.assignee || '—'}</p>
+      <p style="color:#5f6368;font-size:13px;">Owner: ${fmtPeople(task.taskOwner)} &middot; Assignee: ${fmtPeople(task.assignee)}</p>
     `),
   });
 }
@@ -98,7 +106,7 @@ function taskListHtml(tasks, projectByName) {
   return `<ul style="padding-left:18px;margin:8px 0;">${tasks.map((t) => `
     <li style="margin-bottom:4px;font-size:13px;">
       <strong>${t.taskName}</strong> — ${projectByName[t.projectId] || 'Unknown project'}
-      (${t.assignee || 'unassigned'}, due ${t.dueDate || 'n/a'})
+      (${fmtPeople(t.assignee) === '—' ? 'unassigned' : fmtPeople(t.assignee)}, due ${t.dueDate || 'n/a'})
     </li>`).join('')}</ul>`;
 }
 
