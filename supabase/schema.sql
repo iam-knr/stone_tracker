@@ -55,6 +55,10 @@ create table if not exists invoice_settings (
   "companyPhone" text,
   "companyAddress" text,
   "companyGstin" text,
+  "companyLogo" text,
+  "bankAccountName" text,
+  "bankAccountNumber" text,
+  "bankIfsc" text,
   "currencySymbol" text default '$',
   "nextInvoiceNumber" integer default 1
 );
@@ -85,6 +89,14 @@ create table if not exists users (
 -- invoices / invoice_settings tables predate this, run:
 -- alter table invoices add column if not exists "clientGstin" text;
 -- alter table invoice_settings add column if not exists "companyGstin" text;
+
+-- Company logo + bank account details (admin-only, one-time setup in
+-- Company Info, shown on every invoice). If your invoice_settings table
+-- predates this, run:
+-- alter table invoice_settings add column if not exists "companyLogo" text;
+-- alter table invoice_settings add column if not exists "bankAccountName" text;
+-- alter table invoice_settings add column if not exists "bankAccountNumber" text;
+-- alter table invoice_settings add column if not exists "bankIfsc" text;
 
 -- Multi-assign migration: if your tasks.assignee / tasks."taskOwner" columns
 -- are still plain `text` (single person per task) from an earlier version of
