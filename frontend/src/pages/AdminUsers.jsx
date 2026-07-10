@@ -67,6 +67,15 @@ export default function AdminUsers() {
     }
   }
 
+  async function handleInvoiceAccessToggle(id, current) {
+    try {
+      await api.put(`/users/${id}/invoice-access`, { canAccessInvoices: !current });
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not update invoice access.');
+    }
+  }
+
   async function handleDelete(id, username) {
     if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return;
     try {
@@ -163,6 +172,15 @@ export default function AdminUsers() {
                   </div>
                 ) : (
                   <button onClick={() => setResetId(u.id)} className="text-xs text-indigo-600 font-medium link-underline">Reset Password</button>
+                )}
+                {u.role !== 'admin' && (
+                  <button
+                    onClick={() => handleInvoiceAccessToggle(u.id, u.canAccessInvoices === true)}
+                    className={`text-xs font-medium px-2 py-1 rounded-full ${u.canAccessInvoices ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
+                    title="Grant or revoke access to the Invoices dashboard"
+                  >
+                    Invoices: {u.canAccessInvoices ? 'On' : 'Off'}
+                  </button>
                 )}
                 <button onClick={() => handleDelete(u.id, u.username)} className="text-xs text-google-red font-medium link-underline">Delete</button>
               </div>
