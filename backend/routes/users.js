@@ -141,6 +141,24 @@ router.put('/:id/password', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Admin (Super Admin): grant or revoke a user's access to the Invoices
+// dashboard. This is independent of role — a Task Owner or Task Assignee
+// can be given invoice access without changing their role, and the Super
+// Admin always has access regardless of this flag.
+router.put('/:id/invoice-access', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { canAccessInvoices } = req.body;
+    if (typeof canAccessInvoices !== 'boolean') {
+      return res.status(400).json({ error: '"canAccessInvoices" must be true or false.' });
+    }
+    await updateRowById('Users', 0, req.params.id, { canAccessInvoices });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PUT /users/:id/invoice-access failed:', err);
+    res.status(500).json({ error: 'Could not update invoice access.' });
+  }
+});
+
 // Admin (Super Admin): change a user's email address
 router.put('/:id/email', verifyToken, requireAdmin, async (req, res) => {
   try {

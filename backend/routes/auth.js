@@ -39,8 +39,9 @@ router.post('/login', async (req, res) => {
       const match = await bcrypt.compare(password, dbUser.passwordHash);
       if (match) {
         const role = dbUser.role || 'task_assignee';
-        const token = jwt.sign({ username: dbUser.username, role, id: dbUser.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
-        return res.json({ token, role, username: dbUser.username });
+        const canAccessInvoices = dbUser.canAccessInvoices === true;
+        const token = jwt.sign({ username: dbUser.username, role, id: dbUser.id, canAccessInvoices }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ token, role, username: dbUser.username, canAccessInvoices });
       }
     }
 
@@ -74,8 +75,8 @@ router.post('/login', async (req, res) => {
         }, HEADERS);
       }
 
-      const token = jwt.sign({ username: adminUsername, role: 'admin', id: adminId }, process.env.JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, role: 'admin', username: adminUsername });
+      const token = jwt.sign({ username: adminUsername, role: 'admin', id: adminId, canAccessInvoices: true }, process.env.JWT_SECRET, { expiresIn: '8h' });
+      return res.json({ token, role: 'admin', username: adminUsername, canAccessInvoices: true });
     }
 
     return res.status(401).json({ error: 'Invalid credentials' });
