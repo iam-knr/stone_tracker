@@ -24,6 +24,39 @@ create table if not exists tasks (
   notes text
 );
 
+create table if not exists invoices (
+  id text primary key,
+  "invoiceNumber" text,
+  "clientName" text not null,
+  "clientEmail" text,
+  "clientAddress" text,
+  "issueDate" date,
+  "dueDate" date,
+  "lineItems" jsonb default '[]'::jsonb,
+  "taxPercent" numeric default 0,
+  "discountPercent" numeric default 0,
+  notes text,
+  terms text,
+  status text default 'Draft',
+  "createdBy" text,
+  "createdAt" timestamptz default now(),
+  "sentAt" timestamptz,
+  deletedat timestamptz,
+  deletedby text
+);
+
+-- Singleton row (id = 'default') holding the company profile shown on
+-- every invoice's PDF header, plus the running invoice-number counter.
+create table if not exists invoice_settings (
+  id text primary key default 'default',
+  "companyName" text,
+  "companyEmail" text,
+  "companyPhone" text,
+  "companyAddress" text,
+  "currencySymbol" text default '$',
+  "nextInvoiceNumber" integer default 1
+);
+
 create table if not exists users (
   id text primary key,
   username text unique not null,
@@ -40,6 +73,11 @@ create table if not exists users (
 -- alter table users add column if not exists "resetTokenHash" text;
 -- alter table users add column if not exists "resetTokenExpiry" timestamptz;
 
+-- Invoicing is an opt-in permission the Super Admin grants per-user,
+-- independent of role (task_owner/task_assignee accounts can be given
+-- access without changing their role):
+-- alter table users add column if not exists "canAccessInvoices" boolean default false;
+
 -- Multi-assign migration: if your tasks.assignee / tasks."taskOwner" columns
 -- are still plain `text` (single person per task) from an earlier version of
 -- this schema, run this once to upgrade them to `text[]` (multiple people per
@@ -55,3 +93,5 @@ create table if not exists users (
 alter table projects enable row level security;
 alter table tasks enable row level security;
 alter table users enable row level security;
+alter table invoices enable row level security;
+alter table invoice_settings enable row level security;
