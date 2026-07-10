@@ -30,6 +30,7 @@ create table if not exists invoices (
   "clientName" text not null,
   "clientEmail" text,
   "clientAddress" text,
+  "clientGstin" text,
   "issueDate" date,
   "dueDate" date,
   "lineItems" jsonb default '[]'::jsonb,
@@ -53,6 +54,7 @@ create table if not exists invoice_settings (
   "companyEmail" text,
   "companyPhone" text,
   "companyAddress" text,
+  "companyGstin" text,
   "currencySymbol" text default '$',
   "nextInvoiceNumber" integer default 1
 );
@@ -77,6 +79,12 @@ create table if not exists users (
 -- independent of role (task_owner/task_assignee accounts can be given
 -- access without changing their role):
 -- alter table users add column if not exists "canAccessInvoices" boolean default false;
+
+-- GST fields for Indian billing: company GSTIN (admin-only, one-time setup
+-- in Company Info) and client GSTIN (standalone per-invoice input). If your
+-- invoices / invoice_settings tables predate this, run:
+-- alter table invoices add column if not exists "clientGstin" text;
+-- alter table invoice_settings add column if not exists "companyGstin" text;
 
 -- Multi-assign migration: if your tasks.assignee / tasks."taskOwner" columns
 -- are still plain `text` (single person per task) from an earlier version of
