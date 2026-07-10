@@ -58,6 +58,7 @@ export function renderInvoicePdf(invoice, settings) {
       if (settings?.companyAddress) doc.text(settings.companyAddress, 50, doc.y + 2, { width: 260 });
       if (settings?.companyEmail) doc.text(settings.companyEmail, 50, doc.y + 2);
       if (settings?.companyPhone) doc.text(settings.companyPhone, 50, doc.y + 2);
+      if (settings?.companyGstin) doc.text(`GSTIN: ${settings.companyGstin}`, 50, doc.y + 2);
 
       doc.font('Helvetica-Bold').fontSize(22).fillColor('#1a73e8')
         .text('INVOICE', 300, startY, { width: 245, align: 'right' });
@@ -76,6 +77,7 @@ export function renderInvoicePdf(invoice, settings) {
       doc.fontSize(9).fillColor('#5f6368');
       if (invoice.clientAddress) doc.text(invoice.clientAddress, 50, doc.y + 2, { width: 300 });
       if (invoice.clientEmail) doc.text(invoice.clientEmail, 50, doc.y + 2);
+      if (invoice.clientGstin) doc.text(`GSTIN: ${invoice.clientGstin}`, 50, doc.y + 2);
 
       doc.moveDown(1.5);
 
