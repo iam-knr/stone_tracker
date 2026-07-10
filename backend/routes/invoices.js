@@ -13,6 +13,10 @@ const DEFAULT_SETTINGS = {
   companyPhone: '',
   companyAddress: '',
   companyGstin: '',
+  companyLogo: '',
+  bankAccountName: '',
+  bankAccountNumber: '',
+  bankIfsc: '',
   currencySymbol: '$',
   nextInvoiceNumber: 1,
 };
@@ -58,10 +62,20 @@ router.get('/invoices/settings', verifyToken, requireInvoiceAccess, async (req, 
 
 router.put('/invoices/settings', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { companyName, companyEmail, companyPhone, companyAddress, companyGstin, currencySymbol } = req.body;
+    const {
+      companyName, companyEmail, companyPhone, companyAddress, companyGstin, companyLogo,
+      bankAccountName, bankAccountNumber, bankIfsc, currencySymbol,
+    } = req.body;
     const rows = await readSheet('InvoiceSettings');
     const existing = rows.find((r) => r.id === 'default');
-    const updates = { companyName, companyEmail, companyPhone, companyAddress, companyGstin, currencySymbol };
+    const updates = {
+      companyName, companyEmail, companyPhone, companyAddress, companyGstin, companyLogo,
+      bankAccountName, bankAccountNumber, bankIfsc, currencySymbol,
+    };
+    // Don't let an empty/omitted logo in the request wipe out a previously
+    // uploaded one — the modal always sends the current logo back, but this
+    // guards against any client sending a blank string by mistake.
+    if (updates.companyLogo === undefined) delete updates.companyLogo;
     if (existing) {
       await updateRowById('InvoiceSettings', 0, 'default', updates);
     } else {
