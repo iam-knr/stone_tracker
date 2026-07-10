@@ -156,10 +156,19 @@ router.put('/:id/email', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
+// assignee/taskOwner are lists of usernames (multi-assign). Treats a
+// leftover legacy single-string value as a one-person list too.
+function toUserList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
 // Admin (Super Admin): bulk-transfer a user's work to another user.
-// Reassigns every task where they're the taskOwner and/or assignee to the
-// target user. This is how you offboard/replace a task owner or assignee
-// without losing task history.
+// Reassigns every task where they're one of the taskOwners and/or assignees
+// to the target user — swapping just that one person out of the list (so
+// any co-owners/co-assignees on the task are left untouched). This is how
+// you offboard/replace a task owner or assignee without losing task history.
 router.post('/transfer', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { fromUsername, toUsername } = req.body;
@@ -170,12 +179,17 @@ router.post('/transfer', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Source and destination user must be different.' });
     }
     const tasks = await readSheet('Tasks');
-    const asOwner = tasks.filter((t) => t.taskOwner === fromUsername);
-    const asAssignee = tasks.filter((t) => t.assignee === fromUsername);
+    const asOwner = tasks.filter((t) => toUserList(t.taskOwner).includes(fromUsername));
+    const asAssignee = tasks.filter((t) => toUserList(t.assignee).includes(fromUsername));
+
+    function swap(list) {
+      const deduped = new Set(list.map((u) => (u === fromUsername ? toUsername : u)));
+      return [...deduped];
+    }
 
     await Promise.all([
-      ...asOwner.map((t) => updateRowById('Tasks', 0, t.id, { taskOwner: toUsername })),
-      ...asAssignee.map((t) => updateRowById('Tasks', 0, t.id, { assignee: toUsername })),
+      ...asOwner.map((t) => updateRowById('Tasks', 0, t.id, { taskOwner: swap(toUserList(t.taskOwner)) })),
+      ...asAssignee.map((t) => updateRowById('Tasks', 0, t.id, { assignee: swap(toUserList(t.assignee)) })),
     ]);
 
     res.json({ success: true, ownedTasksMoved: asOwner.length, assignedTasksMoved: asAssignee.length });

@@ -23,6 +23,26 @@ function sanitizeDates(body, dateFields) {
   return clean;
 }
 
+// A task's assignee/taskOwner are now lists of usernames (multi-assign).
+// Accepts an array, a single legacy string, or nothing, and always returns
+// a clean array of non-empty strings so the DB column (text[]) gets a
+// consistent shape either way.
+function toUserList(value) {
+  if (Array.isArray(value)) return [...new Set(value.map((v) => String(v).trim()).filter(Boolean))];
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
+// Normalizes assignee/taskOwner on a request body, only touching keys that
+// were actually sent (so partial updates, e.g. just changing status, don't
+// accidentally wipe these fields).
+function normalizePeopleFields(body) {
+  const clean = { ...body };
+  if (Object.prototype.hasOwnProperty.call(clean, 'assignee')) clean.assignee = toUserList(clean.assignee);
+  if (Object.prototype.hasOwnProperty.call(clean, 'taskOwner')) clean.taskOwner = toUserList(clean.taskOwner);
+  return clean;
+}
+
 function notifyAdminOfDeletion(payload) {
   if (!process.env.ADMIN_NOTIFY_EMAIL) return;
   sendItemDeletedEmail(process.env.ADMIN_NOTIFY_EMAIL, payload).catch((err) => {
@@ -191,7 +211,13 @@ router.post('/tasks', verifyToken, async (req, res) => {
       return res.status(400).json({ error: `Status must be one of: ${VALID_TASK_STATUSES.join(', ')}` });
     }
     const now = new Date().toISOString();
-    const task = { id: Date.now().toString(), createdat: now, updatedat: now, checklist: [], ...sanitizeDates(req.body, ['startDate', 'dueDate']) };
+    const task = {
+      id: Date.now().toString(),
+      createdat: now,
+      updatedat: now,
+      checklist: [],
+      ...normalizePeopleFields(sanitizeDates(req.body, ['startDate', 'dueDate'])),
+    };
     await appendRow('Tasks', task, TASK_HEADERS);
     res.json({ success: true, id: task.id });
   } catch (err) {
@@ -201,14 +227,25 @@ router.post('/tasks', verifyToken, async (req, res) => {
 });
 
 // Status/notes/description/checklist/etc. can be updated by any authenticated
-// user, but only the Super Admin can transfer a task's ownership or assignee
-// to someone else.
+// user. Transferring a task's ownership or assignee(s) is restricted to the
+// Super Admin, or a Task Owner who is currently one of the task's owners
+// (mirrors the delete-task rule: you can only reassign work you actually own).
 router.put('/tasks/:id', verifyToken, async (req, res) => {
   try {
     const isTransfer = Object.prototype.hasOwnProperty.call(req.body, 'assignee') ||
                         Object.prototype.hasOwnProperty.call(req.body, 'taskOwner');
-    if (isTransfer && req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Only a Super Admin can transfer task ownership or assignee' });
+    if (isTransfer) {
+      const isAdmin = req.user?.role === 'admin';
+      let isOwningTaskOwner = false;
+      if (!isAdmin && req.user?.role === 'task_owner') {
+        const tasks = await readSheet('Tasks');
+        const task = tasks.find((t) => t.id === req.params.id);
+        const currentOwners = toUserList(task?.taskOwner);
+        isOwningTaskOwner = currentOwners.includes(req.user?.username);
+      }
+      if (!isAdmin && !isOwningTaskOwner) {
+        return res.status(403).json({ error: 'Only a Super Admin, or this task\'s Task Owner, can transfer task ownership or assignee(s).' });
+      }
     }
     if (req.body.priority && !VALID_PRIORITIES.includes(req.body.priority)) {
       return res.status(400).json({ error: `Priority must be one of: ${VALID_PRIORITIES.join(', ')}` });
@@ -219,7 +256,7 @@ router.put('/tasks/:id', verifyToken, async (req, res) => {
     if (req.body.checklist && !Array.isArray(req.body.checklist)) {
       return res.status(400).json({ error: '"checklist" must be an array.' });
     }
-    const updates = { ...sanitizeDates(req.body, ['startDate', 'dueDate']), updatedat: new Date().toISOString() };
+    const updates = { ...normalizePeopleFields(sanitizeDates(req.body, ['startDate', 'dueDate'])), updatedat: new Date().toISOString() };
     await updateRowById('Tasks', 0, req.params.id, updates, TASK_HEADERS);
     res.json({ success: true });
   } catch (err) {
@@ -242,7 +279,7 @@ router.delete('/tasks/:id', verifyToken, async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Task not found.' });
 
     const isAdmin = req.user?.role === 'admin';
-    const isOwningTaskOwner = req.user?.role === 'task_owner' && task.taskOwner === req.user?.username;
+    const isOwningTaskOwner = req.user?.role === 'task_owner' && toUserList(task.taskOwner).includes(req.user?.username);
     if (!isAdmin && !isOwningTaskOwner) {
       return res.status(403).json({ error: 'Only a Super Admin or this task\'s Task Owner can delete it.' });
     }
