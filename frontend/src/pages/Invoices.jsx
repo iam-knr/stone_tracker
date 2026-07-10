@@ -13,9 +13,52 @@ const STATUS_COLORS = {
   Overdue: 'bg-red-50 text-google-red',
 };
 
+// Resizes/compresses an uploaded image client-side before it's stored as a
+// base64 data URI on the invoice settings row — keeps the payload small
+// regardless of how large the source photo/logo file is.
+function fileToResizedDataUrl(file, maxDim = 300) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function SettingsModal({ initial, onClose, onSaved }) {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [logoError, setLogoError] = useState('');
+
+  async function handleLogoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoError('');
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setForm((f) => ({ ...f, companyLogo: dataUrl }));
+    } catch {
+      setLogoError('Could not read that image file.');
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -36,6 +79,18 @@ function SettingsModal({ initial, onClose, onSaved }) {
       <form onSubmit={handleSave} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-medium mb-4">Company Info</h2>
         <p className="text-xs text-gray-400 mb-3">Shown on the header of every invoice PDF.</p>
+        <label className="block text-xs text-gray-500 mb-1">Company Logo</label>
+        <div className="flex items-center gap-3 mb-3">
+          {form.companyLogo ? (
+            <img src={form.companyLogo} alt="Logo preview" className="w-14 h-14 rounded-lg object-contain border border-gray-200 bg-gray-50" />
+          ) : (
+            <div className="w-14 h-14 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-[10px] text-gray-400">No logo</div>
+          )}
+          <div>
+            <input type="file" accept="image/*" onChange={handleLogoChange} className="block text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:bg-indigo-50 file:text-indigo-600 file:text-xs file:font-medium" />
+            {logoError && <p className="text-[11px] text-google-red mt-1">{logoError}</p>}
+          </div>
+        </div>
         <label className="block text-xs text-gray-500 mb-1">Company Name</label>
         <input value={form.companyName || ''} onChange={(e) => setForm({ ...form, companyName: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
@@ -53,6 +108,21 @@ function SettingsModal({ initial, onClose, onSaved }) {
           placeholder="e.g. 22AAAAA0000A1Z5"
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
         <p className="text-[11px] text-gray-400 -mt-2 mb-3">Set once here — only a Super Admin can change your company's GSTIN.</p>
+
+        <div className="border-t border-gray-100 pt-3 mt-1 mb-3">
+          <p className="text-sm font-medium text-gray-700 mb-2">Bank Account Details</p>
+          <label className="block text-xs text-gray-500 mb-1">Account Name</label>
+          <input value={form.bankAccountName || ''} onChange={(e) => setForm({ ...form, bankAccountName: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
+          <label className="block text-xs text-gray-500 mb-1">Account Number</label>
+          <input value={form.bankAccountNumber || ''} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
+          <label className="block text-xs text-gray-500 mb-1">IFSC Code</label>
+          <input value={form.bankIfsc || ''} onChange={(e) => setForm({ ...form, bankIfsc: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-1 text-sm" />
+          <p className="text-[11px] text-gray-400">Set once here — only a Super Admin can change these. Shown on every invoice for bank-transfer payments.</p>
+        </div>
+
         <label className="block text-xs text-gray-500 mb-1">Currency Symbol</label>
         <input value={form.currencySymbol || '$'} onChange={(e) => setForm({ ...form, currencySymbol: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-sm" />

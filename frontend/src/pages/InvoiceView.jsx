@@ -115,12 +115,17 @@ export default function InvoiceView() {
     >
       <div className="bg-white rounded-2xl shadow-card p-8 max-w-3xl">
         <div className="flex justify-between items-start mb-8">
-          <div>
+          <div className="flex items-start gap-3">
+            {settings.companyLogo && (
+              <img src={settings.companyLogo} alt="Company logo" className="w-14 h-14 object-contain rounded-lg" />
+            )}
+            <div>
             <p className="text-xl font-bold text-gray-900">{settings.companyName || 'Your Company'}</p>
             <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{settings.companyAddress}</p>
             <p className="text-xs text-gray-500">{settings.companyEmail}</p>
             <p className="text-xs text-gray-500">{settings.companyPhone}</p>
             {settings.companyGstin && <p className="text-xs text-gray-500">GSTIN: {settings.companyGstin}</p>}
+            </div>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-indigo-600 tracking-wide">INVOICE</p>
@@ -179,9 +184,17 @@ export default function InvoiceView() {
           </div>
         )}
         {invoice.terms && (
-          <div>
+          <div className="mb-4">
             <p className="text-xs font-semibold text-gray-800 mb-1">Terms &amp; Conditions</p>
             <p className="text-xs text-gray-500 whitespace-pre-line">{invoice.terms}</p>
+          </div>
+        )}
+        {(settings.bankAccountName || settings.bankAccountNumber || settings.bankIfsc) && (
+          <div>
+            <p className="text-xs font-semibold text-gray-800 mb-1">Bank Details</p>
+            {settings.bankAccountName && <p className="text-xs text-gray-500">Account Name: {settings.bankAccountName}</p>}
+            {settings.bankAccountNumber && <p className="text-xs text-gray-500">Account Number: {settings.bankAccountNumber}</p>}
+            {settings.bankIfsc && <p className="text-xs text-gray-500">IFSC Code: {settings.bankIfsc}</p>}
           </div>
         )}
         {invoice.sentAt && (
