@@ -7,6 +7,9 @@ import Preloader from '../components/Preloader.jsx';
 import TaskDetailModal from '../components/TaskDetailModal.jsx';
 import ProjectDetailModal from '../components/ProjectDetailModal.jsx';
 import { ArchiveBoxIcon, TrashIcon, ExpandIcon } from '../components/Icons.jsx';
+import MultiUserSelect from '../components/MultiUserSelect.jsx';
+import TransferPanel from '../components/TransferPanel.jsx';
+import { toList, formatList, includesUser } from '../utils/people.js';
 
 const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done'];
 const COLUMN_ACCENTS = {
@@ -21,7 +24,7 @@ const COLUMN_ACCENT_HEX = {
   'Review': '#fbbc04',
   'Done': '#34a853',
 };
-const EMPTY_FORM = { taskName: '', description: '', assignee: '', taskOwner: '', priority: 'Medium', status: 'To Do', startDate: '', dueDate: '' };
+const EMPTY_FORM = { taskName: '', description: '', assignee: [], taskOwner: [], priority: 'Medium', status: 'To Do', startDate: '', dueDate: '' };
 
 export default function ProjectBoard() {
   const { id } = useParams();
@@ -55,6 +58,7 @@ export default function ProjectBoard() {
   const assigneeOptions = isTaskAssignee
     ? users.filter((u) => u.username === username)
     : users.filter((u) => u.role === 'task_assignee' || u.role === 'task_owner');
+  const assigneeOptionsForTransfer = users.filter((u) => u.role === 'task_assignee' || u.role === 'task_owner');
 
   async function load() {
     const { data } = await api.get(`/tasks?projectId=${id}`);
@@ -75,6 +79,8 @@ export default function ProjectBoard() {
 
   async function handleAdd(e) {
     e.preventDefault();
+    if (form.assignee.length === 0) return alert('Select at least one assignee.');
+    if (form.taskOwner.length === 0) return alert('Select at least one task owner.');
     const payload = { ...form, projectId: id, startDate: form.startDate || null, dueDate: form.dueDate || null };
     await api.post('/tasks', payload);
     setShowModal(false);
@@ -87,14 +93,20 @@ export default function ProjectBoard() {
     load();
   }
 
-  async function transferTask(taskId, field, value) {
-    await api.put(`/tasks/${taskId}`, { [field]: value });
+  async function transferTask(taskId, updates) {
+    await api.put(`/tasks/${taskId}`, updates);
     setTransferTaskId(null);
     load();
   }
 
   function canDeleteTask(t) {
-    return isAdmin || (isTaskOwner && t.taskOwner === username);
+    return isAdmin || (isTaskOwner && includesUser(t.taskOwner, username));
+  }
+
+  // A Task Owner can only reassign ownership/assignees on tasks they
+  // currently own themselves; admin can do it for anything.
+  function canTransferTask(t) {
+    return isAdmin || (isTaskOwner && includesUser(t.taskOwner, username));
   }
 
   async function deleteTask(taskId, taskName) {
@@ -177,7 +189,7 @@ export default function ProjectBoard() {
               {deletingProject ? 'Deleting…' : 'Delete'}
             </button>
           )}
-          <button onClick={() => { if (isTaskAssignee) setForm((f) => ({ ...f, assignee: username })); setShowModal(true); }} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
+          <button onClick={() => { if (isTaskAssignee) setForm((f) => ({ ...f, assignee: [username] })); setShowModal(true); }} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
             <span className="text-lg leading-none">+</span> New Task
           </button>
         </div>
@@ -223,8 +235,8 @@ export default function ProjectBoard() {
                       ☑ {t.checklist.filter((c) => c.done).length}/{t.checklist.length} subtasks
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">Assignee: {t.assignee}</p>
-                  <p className="text-xs text-gray-500">Owner: {t.taskOwner}</p>
+                  <p className="text-xs text-gray-500">Assignee: {formatList(t.assignee)}</p>
+                  <p className="text-xs text-gray-500">Owner: {formatList(t.taskOwner)}</p>
                   {t.startDate && <p className="text-xs text-gray-400">Start: {t.startDate}</p>}
                   <p className="text-xs text-gray-400 mb-2">Due: {t.dueDate || '—'}</p>
                   <div onClick={(e) => e.stopPropagation()}>
@@ -232,19 +244,15 @@ export default function ProjectBoard() {
                       className="w-full text-xs border border-gray-200 rounded-md px-2 py-1 mb-2 transition focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
                       {COLUMNS.map(c => <option key={c}>{c}</option>)}
                     </select>
-                    {isAdmin && (
+                    {canTransferTask(t) && (
                       transferTaskId === t.id ? (
-                        <div className="flex flex-col gap-1 mb-2">
-                          <select defaultValue={t.taskOwner} onChange={(e) => transferTask(t.id, 'taskOwner', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
-                            <option value="">Reassign owner...</option>
-                            {owners.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-                          </select>
-                          <select defaultValue={t.assignee} onChange={(e) => transferTask(t.id, 'assignee', e.target.value)} className="w-full text-xs border border-gray-200 rounded-md px-2 py-1">
-                            <option value="">Reassign assignee...</option>
-                            {assignees.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-                          </select>
-                          <button onClick={() => setTransferTaskId(null)} className="text-xs text-gray-400">Done</button>
-                        </div>
+                        <TransferPanel
+                          task={t}
+                          owners={owners}
+                          assignees={assigneeOptionsForTransfer}
+                          onSave={(updates) => transferTask(t.id, updates)}
+                          onCancel={() => setTransferTaskId(null)}
+                        />
                       ) : (
                         <button onClick={() => setTransferTaskId(t.id)} className="text-xs text-indigo-600 font-medium link-underline block mb-1">Transfer ownership/assignee</button>
                       )
@@ -276,19 +284,22 @@ export default function ProjectBoard() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" rows={2} />
 
-            <label className="block text-xs text-gray-500 mb-1">Assignee</label>
-            <select required disabled={isTaskAssignee} value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm disabled:bg-gray-100 disabled:text-gray-500">
-              <option value="">Select assignee...</option>
-              {assigneeOptions.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-            </select>
+            <label className="block text-xs text-gray-500 mb-1">Assignee(s)</label>
+            <MultiUserSelect
+              options={assigneeOptions}
+              value={form.assignee}
+              onChange={(v) => setForm({ ...form, assignee: v })}
+              placeholder="Select assignee(s)..."
+              disabled={isTaskAssignee}
+            />
 
-            <label className="block text-xs text-gray-500 mb-1">Task Owner</label>
-            <select required value={form.taskOwner} onChange={(e) => setForm({ ...form, taskOwner: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm">
-              <option value="">Select task owner...</option>
-              {owners.map((u) => <option key={u.id} value={u.username}>{u.username}</option>)}
-            </select>
+            <label className="block text-xs text-gray-500 mb-1">Task Owner(s)</label>
+            <MultiUserSelect
+              options={owners}
+              value={form.taskOwner}
+              onChange={(v) => setForm({ ...form, taskOwner: v })}
+              placeholder="Select task owner(s)..."
+            />
 
             <div className="flex gap-3 mb-3">
               <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}

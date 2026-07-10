@@ -4,6 +4,7 @@ import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
 import Preloader from '../components/Preloader.jsx';
+import { formatList } from '../utils/people.js';
 
 const STATUS_COLORS = {
   'To Do': 'bg-gray-100 text-gray-600',
@@ -70,8 +71,8 @@ export default function Tasks() {
                   >
                     <td className="px-5 py-3 font-medium text-gray-800">{t.taskName}</td>
                     <td className="px-5 py-3 text-gray-500">{projectByName[t.projectId] || '—'}</td>
-                    <td className="px-5 py-3 text-gray-500">{t.assignee}</td>
-                    <td className="px-5 py-3 text-gray-500">{t.taskOwner}</td>
+                    <td className="px-5 py-3 text-gray-500">{formatList(t.assignee)}</td>
+                    <td className="px-5 py-3 text-gray-500">{formatList(t.taskOwner)}</td>
                     <td className="px-5 py-3"><PriorityBadge priority={t.priority} /></td>
                     <td className="px-5 py-3">
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[t.status] || 'bg-gray-100'}`}>{t.status}</span>
