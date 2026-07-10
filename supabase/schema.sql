@@ -15,8 +15,8 @@ create table if not exists tasks (
   "projectId" text references projects(id) on delete cascade,
   "taskName" text,
   description text,
-  assignee text,
-  "taskOwner" text,
+  assignee text[],
+  "taskOwner" text[],
   priority text,
   status text,
   "startDate" date,
@@ -39,6 +39,15 @@ create table if not exists users (
 -- alter table users add column if not exists email text;
 -- alter table users add column if not exists "resetTokenHash" text;
 -- alter table users add column if not exists "resetTokenExpiry" timestamptz;
+
+-- Multi-assign migration: if your tasks.assignee / tasks."taskOwner" columns
+-- are still plain `text` (single person per task) from an earlier version of
+-- this schema, run this once to upgrade them to `text[]` (multiple people per
+-- task), preserving each existing single value as a one-person array:
+-- alter table tasks alter column assignee type text[] using
+--   case when assignee is null or assignee = '' then '{}'::text[] else array[assignee] end;
+-- alter table tasks alter column "taskOwner" type text[] using
+--   case when "taskOwner" is null or "taskOwner" = '' then '{}'::text[] else array["taskOwner"] end;
 
 -- Row Level Security: the backend talks to Supabase using the service_role
 -- key (server-side only), which bypasses RLS, so these tables are safe to
