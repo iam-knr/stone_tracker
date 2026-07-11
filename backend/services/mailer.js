@@ -18,7 +18,7 @@ function getTransporter() {
 async function send({ to, subject, text, html }) {
   const t = getTransporter();
   if (!t) {
-    console.error('Email not configured (EMAIL_USER / EMAIL_APP_PASSWORD missing) — skipping send.');
+    console.error('Email not configured (EMAIL_USER / EMAIL_APP_PASSWORD missing) - skipping send.');
     return;
   }
   const recipients = Array.isArray(to) ? [...new Set(to.filter(Boolean))] : to;
@@ -36,12 +36,12 @@ async function send({ to, subject, text, html }) {
   }
 }
 
-// assignee/taskOwner are lists of usernames now — format them as a
+// assignee/taskOwner are lists of usernames now - format them as a
 // human-readable comma-separated string (falls back to a single legacy
 // string value, or an em-dash if nobody's set).
 function fmtPeople(v) {
-  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
-  return v || '—';
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '-';
+  return v || '-';
 }
 
 function wrap(title, bodyHtml) {
@@ -49,12 +49,12 @@ function wrap(title, bodyHtml) {
     <div style="font-family:Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#202124;">
       <h2 style="color:#1a73e8;margin:0 0 16px;">${title}</h2>
       ${bodyHtml}
-      <p style="color:#9aa0a6;font-size:12px;margin-top:32px;">Stone Tracker &middot; automated notification</p>
+      <p style="color:#9aa0a6;font-size:12px;margin-top:32px;">Stone Tracker - automated notification</p>
     </div>
   `;
 }
 
-// Dedicated invoice sender — unlike the generic send() helper above (which
+// Dedicated invoice sender - unlike the generic send() helper above (which
 // intentionally swallows failures for anti-enumeration reasons on
 // password-reset emails), this THROWS on failure so the "Send Invoice"
 // button in the UI can tell the user it actually failed rather than
@@ -114,18 +114,18 @@ export async function sendPasswordResetEmail(toEmail, resetUrl) {
 
 export async function sendTaskCreatedEmail(recipients, task, projectName) {
   const rows = `
-    <tr><td style="padding:4px 0;color:#5f6368;">Project</td><td style="padding:4px 0;">${projectName || '—'}</td></tr>
+    <tr><td style="padding:4px 0;color:#5f6368;">Project</td><td style="padding:4px 0;">${projectName || '-'}</td></tr>
     <tr><td style="padding:4px 0;color:#5f6368;">Owner</td><td style="padding:4px 0;">${fmtPeople(task.taskOwner)}</td></tr>
     <tr><td style="padding:4px 0;color:#5f6368;">Assignee</td><td style="padding:4px 0;">${fmtPeople(task.assignee)}</td></tr>
-    <tr><td style="padding:4px 0;color:#5f6368;">Priority</td><td style="padding:4px 0;">${task.priority || '—'}</td></tr>
-    <tr><td style="padding:4px 0;color:#5f6368;">Due</td><td style="padding:4px 0;">${task.dueDate || '—'}</td></tr>
+    <tr><td style="padding:4px 0;color:#5f6368;">Priority</td><td style="padding:4px 0;">${task.priority || '-'}</td></tr>
+    <tr><td style="padding:4px 0;color:#5f6368;">Due</td><td style="padding:4px 0;">${task.dueDate || '-'}</td></tr>
   `;
   await send({
     to: recipients,
     subject: `New task created: ${task.taskName}`,
     text: `A new task "${task.taskName}" was created in ${projectName || 'a project'}. Owner: ${fmtPeople(task.taskOwner)}. Assignee: ${fmtPeople(task.assignee)}. Due: ${task.dueDate || 'no due date'}.`,
     html: wrap('New task created', `
-      <p><strong>${task.taskName}</strong>${task.description ? ` — ${task.description}` : ''}</p>
+      <p><strong>${task.taskName}</strong>${task.description ? ` - ${task.description}` : ''}</p>
       <table style="border-collapse:collapse;font-size:14px;">${rows}</table>
     `),
   });
@@ -134,7 +134,7 @@ export async function sendTaskCreatedEmail(recipients, task, projectName) {
 export async function sendTaskStatusChangedEmail(recipients, task, projectName, oldStatus, newStatus) {
   await send({
     to: recipients,
-    subject: `Task update: ${task.taskName} → ${newStatus}`,
+    subject: `Task update: ${task.taskName} -> ${newStatus}`,
     text: `"${task.taskName}" in ${projectName || 'a project'} moved from ${oldStatus} to ${newStatus}.`,
     html: wrap('Task status updated', `
       <p><strong>${task.taskName}</strong> in ${projectName || 'a project'}</p>
@@ -148,15 +148,15 @@ function taskListHtml(tasks, projectByName) {
   if (!tasks.length) return '<p style="color:#5f6368;font-size:13px;">None</p>';
   return `<ul style="padding-left:18px;margin:8px 0;">${tasks.map((t) => `
     <li style="margin-bottom:4px;font-size:13px;">
-      <strong>${t.taskName}</strong> — ${projectByName[t.projectId] || 'Unknown project'}
-      (${fmtPeople(t.assignee) === '—' ? 'unassigned' : fmtPeople(t.assignee)}, due ${t.dueDate || 'n/a'})
+      <strong>${t.taskName}</strong> - ${projectByName[t.projectId] || 'Unknown project'}
+      (${fmtPeople(t.assignee) === '-' ? 'unassigned' : fmtPeople(t.assignee)}, due ${t.dueDate || 'n/a'})
     </li>`).join('')}</ul>`;
 }
 
 export async function sendDailyDigestEmail(recipients, { overdueTasks, upcomingTasks, projectByName }) {
   await send({
     to: recipients,
-    subject: `Stone Tracker daily digest — ${overdueTasks.length} overdue, ${upcomingTasks.length} due soon`,
+    subject: `Stone Tracker daily digest - ${overdueTasks.length} overdue, ${upcomingTasks.length} due soon`,
     text: `Overdue: ${overdueTasks.length}. Due within 7 days: ${upcomingTasks.length}.`,
     html: wrap('Daily task digest', `
       <p style="font-weight:500;color:#d93025;">Immediate attention required (overdue)</p>
@@ -184,7 +184,7 @@ export async function sendMidnightSummaryEmail(recipients, { projects, tasks }) 
   }).join('');
   await send({
     to: recipients,
-    subject: `Stone Tracker nightly summary — ${projects.length} projects, ${overallProgress}% overall`,
+    subject: `Stone Tracker nightly summary - ${projects.length} projects, ${overallProgress}% overall`,
     text: `Nightly summary: ${projects.length} projects, ${totalTasks} tasks, ${overallProgress}% overall progress.`,
     html: wrap('Nightly summary', `
       <p style="font-size:14px;">${projects.length} projects &middot; ${totalTasks} tasks &middot; <strong>${overallProgress}%</strong> overall progress</p>
@@ -206,14 +206,14 @@ export async function sendItemDeletedEmail(toEmail, { type, name, projectName, d
     subject: `${label} deleted: ${name}`,
     text: `${label} "${name}"${projectName ? ` (in ${projectName})` : ''} was deleted by ${deletedBy || 'a user'}. It can be recovered from Admin > Deleted Items within 30 days, after which it is permanently removed.`,
     html: wrap(`${label} deleted`, `
-      <p><strong>${name}</strong>${projectName ? ` — ${projectName}` : ''}</p>
+      <p><strong>${name}</strong>${projectName ? ` - ${projectName}` : ''}</p>
       <p style="color:#5f6368;font-size:13px;">Deleted by ${deletedBy || 'a user'}.</p>
       <p style="font-size:13px;">This item is kept in <strong>Deleted Items</strong> for 30 days and can be restored by a Super Admin during that window. After 30 days it is permanently removed.</p>
     `),
   });
 }
 
-// Dedicated quote sender, mirroring sendInvoiceEmail — throws on failure so
+// Dedicated quote sender, mirroring sendInvoiceEmail - throws on failure so
 // the "Send Quote" button can report a real error instead of pretending it
 // worked.
 export async function sendQuoteEmail({ toEmail, quote, companySettings, pdfBuffer }) {
@@ -253,4 +253,58 @@ ${companyName}`;
   });
 }
 
-// Automated payment reminder �
+// Automated payment reminder - sent by the daily /cron/payment-reminders
+// job for invoices that are overdue or due soon. Deliberately lightweight
+// (no PDF attachment, unlike sendInvoiceEmail) since this is a nudge, not
+// the original bill. Throws on failure so the cron route can catch it
+// per-invoice and keep going instead of one bad address stopping the
+// whole batch.
+export async function sendPaymentReminderEmail({ toEmail, invoice, companySettings, daysOverdue }) {
+  const t = getTransporter();
+  if (!t) {
+    throw new Error('Email is not configured on the server (EMAIL_USER / EMAIL_APP_PASSWORD missing).');
+  }
+  if (!toEmail) {
+    throw new Error('This invoice has no client email address to send to.');
+  }
+  const companyName = companySettings?.companyName || 'Stone Tracker';
+  const { total } = (await import('./invoicePdf.js')).computeInvoiceTotals(invoice);
+  const currency = companySettings?.currencySymbol || '$';
+  const isOverdue = daysOverdue > 0;
+  const subject = isOverdue
+    ? `Payment overdue: Invoice ${invoice.invoiceNumber || ''} (${daysOverdue} day${daysOverdue === 1 ? '' : 's'} past due)`
+    : `Payment reminder: Invoice ${invoice.invoiceNumber || ''} due soon`;
+  const statusLine = isOverdue
+    ? `This invoice is now ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} past its due date of ${invoice.dueDate}.`
+    : `This invoice is due on ${invoice.dueDate}.`;
+  const text = `Hi ${invoice.clientName || ''},
+
+${statusLine}
+
+Amount due: ${currency}${total.toFixed(2)}
+Invoice: ${invoice.invoiceNumber || ''}
+
+If you've already paid, please disregard this reminder.
+
+Thank you,
+${companyName}`;
+  const html = wrap(isOverdue ? 'Payment overdue' : 'Payment reminder', `
+    <p>Hi ${invoice.clientName || ''},</p>
+    <p>${statusLine}</p>
+    <table style="border-collapse:collapse;font-size:14px;margin:16px 0;">
+      <tr><td style="padding:4px 0;color:#5f6368;">Invoice</td><td style="padding:4px 0;font-weight:600;">${invoice.invoiceNumber || ''}</td></tr>
+      <tr><td style="padding:4px 0;color:#5f6368;">Amount Due</td><td style="padding:4px 0;font-weight:600;">${currency}${total.toFixed(2)}</td></tr>
+      <tr><td style="padding:4px 0;color:#5f6368;">Due Date</td><td style="padding:4px 0;">${invoice.dueDate}</td></tr>
+    </table>
+    <p style="color:#5f6368;font-size:13px;">If you've already paid, please disregard this reminder.</p>
+  `);
+  await t.sendMail({
+    from: `"${companyName}" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject,
+    text,
+    html,
+  });
+}
+
+export default getTransporter;
