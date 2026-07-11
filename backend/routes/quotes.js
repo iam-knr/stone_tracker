@@ -94,8 +94,11 @@ router.post('/quotes', verifyToken, requireInvoiceAccess, async (req, res) => {
       status: 'Draft',
       createdBy: req.user?.username || 'unknown',
       createdAt: new Date().toISOString(),
-      quoteNumber,
       ...sanitizeQuoteBody(req.body),
+      // Applied after the spread so the resolved number (either the
+      // operator-supplied one or the auto-generated one) always wins over
+      // whatever blank/stale value happened to be in the request body.
+      quoteNumber,
     };
     await appendRow('Quotes', quote);
     res.json({ success: true, id: quote.id, quoteNumber });
