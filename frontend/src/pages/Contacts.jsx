@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import Preloader from '../components/Preloader.jsx';
+import CustomFieldsSection from '../components/CustomFieldsSection.jsx';
 
 const EMPTY_FORM = { name: '', email: '', phone: '', address: '', gstin: '', notes: '' };
 
@@ -49,8 +50,11 @@ function ContactModal({ initial, onClose, onSaved }) {
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" />
         <label className="block text-xs text-gray-500 mb-1">Notes</label>
         <textarea value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-sm" rows={2} />
-        <div className="flex gap-3">
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" rows={2} />
+        <div className="mb-1">
+          <CustomFieldsSection appliesTo="contact" values={form.customFields} onChange={(customFields) => setForm({ ...form, customFields })} />
+        </div>
+        <div className="flex gap-3 mt-3">
           <button type="button" onClick={onClose} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
           <button disabled={saving} className="w-1/2 py-2 rounded-full bg-indigo-600 text-white font-medium btn-modern disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
         </div>

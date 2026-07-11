@@ -4,6 +4,7 @@ import api from '../api.js';
 import DashboardShell from '../components/DashboardShell.jsx';
 import Preloader from '../components/Preloader.jsx';
 import { TrashIcon } from '../components/Icons.jsx';
+import CustomFieldsSection from '../components/CustomFieldsSection.jsx';
 import { computeInvoiceTotals, money } from '../utils/invoiceMath.js';
 
 const EMPTY_LINE = { description: '', qty: 1, rate: 0 };
@@ -277,7 +278,9 @@ export default function InvoiceEditor() {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <CustomFieldsSection appliesTo="invoice" values={form.customFields} onChange={(customFields) => setForm({ ...form, customFields })} />
+
+        <div className="flex gap-3 mt-4">
           <button type="button" onClick={() => navigate('/invoices')} className="py-2 px-6 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
           <button disabled={saving} className="py-2 px-6 rounded-full bg-indigo-600 text-white font-medium btn-modern disabled:opacity-60">
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Invoice'}
