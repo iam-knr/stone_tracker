@@ -30,6 +30,7 @@ export default function InvoiceEditor() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [settings, setSettings] = useState({});
   const [contacts, setContacts] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -37,6 +38,7 @@ export default function InvoiceEditor() {
   useEffect(() => {
     api.get('/invoices/settings').then(({ data }) => setSettings(data));
     api.get('/contacts').then(({ data }) => setContacts(data)).catch(() => {});
+    api.get('/items').then(({ data }) => setItems(data)).catch(() => {});
     if (isEdit) {
       api.get(`/invoices/${id}`).then(({ data }) => {
         setForm({
@@ -98,6 +100,19 @@ export default function InvoiceEditor() {
   }
   function removeLine(idx) {
     setForm((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }));
+  }
+  // Inserts a new line item pre-filled from a saved catalog item, rather
+  // than replacing an existing row — keeps this additive and predictable.
+  function handleInsertItem(e) {
+    const itemId = e.target.value;
+    if (!itemId) return;
+    const it = items.find((i) => i.id === itemId);
+    if (!it) return;
+    setForm((f) => ({
+      ...f,
+      lineItems: [...f.lineItems, { description: it.description, qty: 1, rate: Number(it.rate) || 0 }],
+    }));
+    e.target.value = '';
   }
 
   const totals = computeInvoiceTotals(form);
@@ -194,7 +209,15 @@ export default function InvoiceEditor() {
         </div>
 
         <div className="border-t border-gray-100 pt-4 mb-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Line Items</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-800">Line Items</h3>
+            {items.length > 0 && (
+              <select defaultValue="" onChange={handleInsertItem} className="text-xs border border-gray-300 rounded-lg px-2 py-1.5">
+                <option value="">+ Insert from catalog…</option>
+                {items.map((it) => <option key={it.id} value={it.id}>{it.description}</option>)}
+              </select>
+            )}
+          </div>
           <div className="space-y-2">
             <div className="hidden sm:grid grid-cols-[1fr_70px_100px_100px_28px] gap-2 text-xs text-gray-400 px-1">
               <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
