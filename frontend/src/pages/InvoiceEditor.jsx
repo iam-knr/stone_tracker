@@ -9,6 +9,7 @@ import { computeInvoiceTotals, money } from '../utils/invoiceMath.js';
 const EMPTY_LINE = { description: '', qty: 1, rate: 0 };
 const EMPTY_FORM = {
   invoiceNumber: '',
+  contactId: '',
   clientName: '',
   clientEmail: '',
   clientAddress: '',
@@ -28,11 +29,14 @@ export default function InvoiceEditor() {
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_FORM);
   const [settings, setSettings] = useState({});
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     api.get('/invoices/settings').then(({ data }) => setSettings(data));
+    api.get('/contacts').then(({ data }) => setContacts(data)).catch(() => {});
     if (isEdit) {
       api.get(`/invoices/${id}`).then(({ data }) => {
         setForm({
@@ -43,6 +47,44 @@ export default function InvoiceEditor() {
       }).finally(() => setLoading(false));
     }
   }, [id]);
+
+  function handleContactSelect(e) {
+    const contactId = e.target.value;
+    if (!contactId) {
+      setForm((f) => ({ ...f, contactId: '' }));
+      return;
+    }
+    const c = contacts.find((c) => c.id === contactId);
+    if (!c) return;
+    setForm((f) => ({
+      ...f,
+      contactId,
+      clientName: c.name || '',
+      clientEmail: c.email || '',
+      clientAddress: c.address || '',
+      clientGstin: c.gstin || '',
+    }));
+  }
+
+  async function handleSaveAsContact() {
+    if (!form.clientName.trim()) return alert('Enter a client name first.');
+    setSavingContact(true);
+    try {
+      const { data } = await api.post('/contacts', {
+        name: form.clientName,
+        email: form.clientEmail,
+        address: form.clientAddress,
+        gstin: form.clientGstin,
+      });
+      const { data: refreshed } = await api.get('/contacts');
+      setContacts(refreshed);
+      setForm((f) => ({ ...f, contactId: data.id }));
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not save contact.');
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   function updateLine(idx, field, value) {
     setForm((f) => {
@@ -111,9 +153,24 @@ export default function InvoiceEditor() {
 
         <div className="border-t border-gray-100 pt-4 mb-4">
           <h3 className="text-sm font-semibold text-gray-800 mb-3">Bill To</h3>
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 mb-1">Contact</label>
+            <select value={form.contactId || ''} onChange={handleContactSelect}
+              className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="">+ New / one-off client (not saved to Contacts)</option>
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Client Name</label>
+              <label className="block text-xs text-gray-500 mb-1 flex items-center justify-between">
+                <span>Client Name</span>
+                {!form.contactId && (
+                  <button type="button" onClick={handleSaveAsContact} disabled={savingContact} className="text-indigo-600 font-medium normal-case text-[11px] disabled:opacity-60">
+                    {savingContact ? 'Saving…' : '+ Save as contact'}
+                  </button>
+                )}
+              </label>
               <input required value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
