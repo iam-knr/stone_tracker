@@ -1,6 +1,6 @@
 import express from 'express';
-import { readSheet } from '../services/supabase.js';
-import { sendDailyDigestEmail, sendMidnightSummaryEmail } from '../services/mailer.js';
+import { readSheet, updateRowById } from '../services/supabase.js';
+import { sendDailyDigestEmail, sendMidnightSummaryEmail, sendPaymentReminderEmail } from '../services/mailer.js';
 
 const router = express.Router();
 
@@ -74,6 +74,58 @@ router.get('/midnight-summary', verifyCron, async (req, res) => {
   } catch (err) {
     console.error('GET /cron/midnight-summary failed:', err);
     res.status(500).json({ error: 'Summary failed.' });
+  }
+});
+
+// Daily payment-reminder sweep. Reuses the same reminderSentAt-based
+// dedup approach as everything else in this file being idempotent-safe:
+// an invoice only gets a reminder once per calendar day, so re-running (or
+// a duplicate Vercel Cron trigger) can never double-send. Only invoices in
+// "Sent" or "Overdue" status are considered — Draft invoices haven't been
+// billed yet, and Paid ones are done.
+router.get('/payment-reminders', verifyCron, async (req, res) => {
+  try {
+    const invoices = await readSheet('Invoices');
+    const today = new Date();
+    const todayKey = today.toISOString().slice(0, 10);
+
+    const candidates = invoices.filter((inv) => {
+      if (inv.deletedat) return false;
+      if (!['Sent', 'Overdue'].includes(inv.status)) return false;
+      if (!inv.dueDate) return false;
+      if (!inv.clientEmail) return false;
+      // Already reminded today? Skip (dedup guard).
+      if (inv.reminderSentAt && String(inv.reminderSentAt).slice(0, 10) === todayKey) return false;
+      const diff = daysBetween(inv.dueDate, new Date());
+      // Overdue (diff < 0) or due within the next 3 days (diff 0-3).
+      return diff < 0 || diff <= 3;
+    });
+
+    let settings = null;
+    if (candidates.length > 0) {
+      const settingsRows = await readSheet('InvoiceSettings');
+      settings = settingsRows.find((r) => r.id === 'default') || {};
+    }
+
+    let sent = 0;
+    const failures = [];
+    for (const invoice of candidates) {
+      const diff = daysBetween(invoice.dueDate, new Date());
+      const daysOverdue = diff < 0 ? -diff : 0;
+      try {
+        await sendPaymentReminderEmail({ toEmail: invoice.clientEmail, invoice, companySettings: settings, daysOverdue });
+        await updateRowById('Invoices', 0, invoice.id, { reminderSentAt: new Date().toISOString() });
+        sent += 1;
+      } catch (err) {
+        console.error(`Payment reminder failed for invoice ${invoice.id}:`, err.message);
+        failures.push(invoice.id);
+      }
+    }
+
+    res.json({ success: true, checked: invoices.length, candidates: candidates.length, sent, failed: failures.length });
+  } catch (err) {
+    console.error('GET /cron/payment-reminders failed:', err);
+    res.status(500).json({ error: 'Payment reminders failed.' });
   }
 });
 
