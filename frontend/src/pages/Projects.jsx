@@ -11,6 +11,7 @@ export default function Projects() {
   const canDeleteProject = role === 'admin' || role === 'task_owner';
   const canArchiveProject = role === 'admin' || role === 'task_owner';
   const [projects, setProjects] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [expandedProject, setExpandedProject] = useState(null);
@@ -22,6 +23,7 @@ export default function Projects() {
   async function load() {
     const { data } = await api.get('/projects');
     setProjects(data);
+    try { const { data: contactData } = await api.get('/contacts'); setContacts(contactData || []); } catch (e) { setContacts([]); }
   }
   useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, []);
 
@@ -183,6 +185,9 @@ export default function Projects() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-sm">
               {['Not Started', 'In Progress', 'On Hold', 'Completed'].map((s) => <option key={s}>{s}</option>)}
             </select>
+            <select value={form.clientContactId || ''} onChange={(e) => setForm({ ...form, clientContactId: e.target.value || null })} className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-sm">
+            <option value="">No client contact</option>
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowModal(false)} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
               <button className="w-1/2 py-2 rounded-full bg-indigo-600 text-white font-medium btn-modern">Create</button>
