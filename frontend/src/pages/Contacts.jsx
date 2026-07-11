@@ -51,6 +51,13 @@ function ContactModal({ initial, onClose, onSaved }) {
         <label className="block text-xs text-gray-500 mb-1">Notes</label>
         <textarea value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 text-sm" rows={2} />
+        <br />
+        Customer Portal:
+        <br />
+        <input type="checkbox" checked={!!form.portalEnabled} onChange={(e) => setForm({ ...form, portalEnabled: e.target.checked })} /> Portal Access (magic link login)
+        <br />
+        <input type="checkbox" checked={!!form.commentsEnabled} onChange={(e) => setForm({ ...form, commentsEnabled: e.target.checked })} /> Allow Task Comments
+        <br />
         <div className="mb-1">
           <CustomFieldsSection appliesTo="contact" values={form.customFields} onChange={(customFields) => setForm({ ...form, customFields })} />
         </div>
