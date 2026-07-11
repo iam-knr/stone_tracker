@@ -213,4 +213,44 @@ export async function sendItemDeletedEmail(toEmail, { type, name, projectName, d
   });
 }
 
+// Dedicated quote sender, mirroring sendInvoiceEmail — throws on failure so
+// the "Send Quote" button can report a real error instead of pretending it
+// worked.
+export async function sendQuoteEmail({ toEmail, quote, companySettings, pdfBuffer }) {
+  const t = getTransporter();
+  if (!t) {
+    throw new Error('Email is not configured on the server (EMAIL_USER / EMAIL_APP_PASSWORD missing).');
+  }
+  if (!toEmail) {
+    throw new Error('This quote has no client email address to send to.');
+  }
+  const companyName = companySettings?.companyName || 'Stone Tracker';
+  const { total } = (await import('./quotePdf.js')).computeQuoteTotals(quote);
+  const currency = companySettings?.currencySymbol || '$';
+  const subject = `Quote ${quote.quoteNumber || ''} from ${companyName}`;
+  const text = `Hi ${quote.clientName || ''},
+
+Please find attached quote ${quote.quoteNumber || ''} for ${currency}${total.toFixed(2)}, valid until ${quote.expiryDate || 'further notice'}.
+
+Thank you,
+${companyName}`;
+  const html = wrap(`Quote ${quote.quoteNumber || ''}`, `
+    <p>Hi ${quote.clientName || ''},</p>
+    <p>Please find your quote attached.</p>
+    <table style="border-collapse:collapse;font-size:14px;margin:16px 0;">
+      <tr><td style="padding:4px 0;color:#5f6368;">Amount</td><td style="padding:4px 0;font-weight:600;">${currency}${total.toFixed(2)}</td></tr>
+      <tr><td style="padding:4px 0;color:#5f6368;">Valid Until</td><td style="padding:4px 0;">${quote.expiryDate || 'Further notice'}</td></tr>
+    </table>
+    <p style="color:#5f6368;font-size:13px;">Let us know if you'd like to proceed.</p>
+  `);
+  await t.sendMail({
+    from: `"${companyName}" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject,
+    text,
+    html,
+    attachments: [{ filename: `${quote.quoteNumber || 'quote'}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+  });
+}
+
 export default getTransporter;
