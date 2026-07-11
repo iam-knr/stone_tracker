@@ -165,3 +165,14 @@ export function ReceiptIcon(props) {
     </svg>
   );
 }
+
+export function UsersIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6" />
+      <circle cx="17" cy="8.5" r="2.5" />
+      <path d="M15.2 14.2c2.6.3 4.8 2.7 4.8 5.8" />
+    </svg>
+  );
+}
