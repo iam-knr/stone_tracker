@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon, ReceiptIcon, UsersIcon, QuoteIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon, ReceiptIcon, UsersIcon, QuoteIcon, TagIcon } from './Icons.jsx';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
@@ -126,6 +126,21 @@ export default function Sidebar() {
           >
             <QuoteIcon className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && 'Quotes'}
+          </NavLink>
+        )}
+
+        {canAccessInvoices && (
+          <NavLink
+            to="/items"
+            title={collapsed ? 'Item Catalog' : undefined}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                collapsed ? 'justify-center px-0' : ''
+              } ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`
+            }
+          >
+            <TagIcon className="w-[18px] h-[18px] shrink-0" />
+            {!collapsed && 'Item Catalog'}
           </NavLink>
         )}
 
