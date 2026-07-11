@@ -14,6 +14,9 @@ import InvoiceEditor from './pages/InvoiceEditor.jsx';
 import InvoiceView from './pages/InvoiceView.jsx';
 import Contacts from './pages/Contacts.jsx';
 import ContactView from './pages/ContactView.jsx';
+import Quotes from './pages/Quotes.jsx';
+import QuoteEditor from './pages/QuoteEditor.jsx';
+import QuoteView from './pages/QuoteView.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -47,6 +50,10 @@ export default function App() {
       <Route path="/invoices/:id/edit" element={<Private><InvoiceAccessOnly><InvoiceEditor /></InvoiceAccessOnly></Private>} />
       <Route path="/contacts" element={<Private><InvoiceAccessOnly><Contacts /></InvoiceAccessOnly></Private>} />
       <Route path="/contacts/:id" element={<Private><InvoiceAccessOnly><ContactView /></InvoiceAccessOnly></Private>} />
+      <Route path="/quotes" element={<Private><InvoiceAccessOnly><Quotes /></InvoiceAccessOnly></Private>} />
+      <Route path="/quotes/new" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
+      <Route path="/quotes/:id" element={<Private><InvoiceAccessOnly><QuoteView /></InvoiceAccessOnly></Private>} />
+      <Route path="/quotes/:id/edit" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
