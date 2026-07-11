@@ -12,6 +12,8 @@ import DeletedItems from './pages/DeletedItems.jsx';
 import Invoices from './pages/Invoices.jsx';
 import InvoiceEditor from './pages/InvoiceEditor.jsx';
 import InvoiceView from './pages/InvoiceView.jsx';
+import Contacts from './pages/Contacts.jsx';
+import ContactView from './pages/ContactView.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -43,6 +45,8 @@ export default function App() {
       <Route path="/invoices/new" element={<Private><InvoiceAccessOnly><InvoiceEditor /></InvoiceAccessOnly></Private>} />
       <Route path="/invoices/:id" element={<Private><InvoiceAccessOnly><InvoiceView /></InvoiceAccessOnly></Private>} />
       <Route path="/invoices/:id/edit" element={<Private><InvoiceAccessOnly><InvoiceEditor /></InvoiceAccessOnly></Private>} />
+      <Route path="/contacts" element={<Private><InvoiceAccessOnly><Contacts /></InvoiceAccessOnly></Private>} />
+      <Route path="/contacts/:id" element={<Private><InvoiceAccessOnly><ContactView /></InvoiceAccessOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
