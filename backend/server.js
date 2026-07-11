@@ -10,6 +10,7 @@ import userRoutes from './routes/users.js';
 import taskRoutes from './routes/tasks.js';
 import cronRoutes from './routes/cron.js';
 import invoiceRoutes from './routes/invoices.js';
+import contactRoutes from './routes/contacts.js';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', invoiceRoutes);
+app.use('/api', contactRoutes);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
