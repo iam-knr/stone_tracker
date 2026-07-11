@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon, ReceiptIcon, UsersIcon, QuoteIcon, TagIcon } from './Icons.jsx';
+import { GridIcon, FolderIcon, ChecklistIcon, GearIcon, HelpIcon, LogoutIcon, ChevronsLeftIcon, TrashIcon, ReceiptIcon, UsersIcon, QuoteIcon, TagIcon, SlidersIcon } from './Icons.jsx';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon, end: true },
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
 ];
 
 const ADMIN_NAV_ITEMS = [
+  { to: '/admin/custom-fields', label: 'Custom Fields', icon: SlidersIcon },
   { to: '/admin/deleted-items', label: 'Deleted Items', icon: TrashIcon },
 ];
 

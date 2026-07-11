@@ -198,3 +198,15 @@ export function TagIcon(props) {
     </svg>
   );
 }
+
+// Sliders icon used for the admin Custom Fields nav item.
+export function SlidersIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13M20 18h0" />
+      <circle cx="13" cy="6" r="2" fill="none" />
+      <circle cx="9" cy="12" r="2" fill="none" />
+      <circle cx="17" cy="18" r="2" fill="none" />
+    </svg>
+  );
+}
