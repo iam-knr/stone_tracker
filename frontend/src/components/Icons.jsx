@@ -176,3 +176,15 @@ export function UsersIcon(props) {
     </svg>
   );
 }
+
+// Document-with-lines icon used for the Quotes nav item (distinct from the
+// receipt-shaped Invoices icon).
+export function QuoteIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M7 3.5h7l3 3v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z" />
+      <path d="M14 3.5v3h3" />
+      <path d="M8.5 12h7M8.5 15h7M8.5 18h4" />
+    </svg>
+  );
+}
