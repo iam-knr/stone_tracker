@@ -17,6 +17,7 @@ import ContactView from './pages/ContactView.jsx';
 import Quotes from './pages/Quotes.jsx';
 import QuoteEditor from './pages/QuoteEditor.jsx';
 import QuoteView from './pages/QuoteView.jsx';
+import Items from './pages/Items.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/quotes/new" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
       <Route path="/quotes/:id" element={<Private><InvoiceAccessOnly><QuoteView /></InvoiceAccessOnly></Private>} />
       <Route path="/quotes/:id/edit" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
+      <Route path="/items" element={<Private><InvoiceAccessOnly><Items /></InvoiceAccessOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
