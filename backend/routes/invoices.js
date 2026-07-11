@@ -49,6 +49,18 @@ function sanitizeInvoiceBody(body) {
   return clean;
 }
 
+// Accepts either an array of email strings or a single comma/semicolon
+// separated string (the send-invoice CC field posts a free-text string),
+// and returns a clean, deduped array with anything that isn't a plausible
+// email address dropped rather than rejected outright — CC is optional and
+// best-effort, not a field we want to hard-fail an entire send over.
+function sanitizeCcEmails(raw) {
+  if (!raw) return [];
+  const list = Array.isArray(raw) ? raw : String(raw).split(/[,;]/);
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return [...new Set(list.map((e) => String(e).trim()).filter((e) => EMAIL_RE.test(e)))];
+}
+
 // --- Company profile (Invoice Settings): admin only ---
 
 router.get('/invoices/settings', verifyToken, requireInvoiceAccess, async (req, res) => {
@@ -199,6 +211,8 @@ router.get('/invoices/:id/pdf', verifyToken, requireInvoiceAccess, async (req, r
 // Emails the invoice (as a PDF attachment) directly to the client. Unlike
 // password-reset emails, this reports failures back to the caller — the
 // person clicking "Send" needs to know whether it actually went out.
+// Accepts an optional `ccEmails` field (array or comma-separated string) —
+// entirely optional, never blocks the send if it's missing or malformed.
 router.post('/invoices/:id/send', verifyToken, requireInvoiceAccess, async (req, res) => {
   try {
     const invoices = await readSheet('Invoices');
@@ -207,13 +221,14 @@ router.post('/invoices/:id/send', verifyToken, requireInvoiceAccess, async (req,
     if (!invoice.clientEmail) {
       return res.status(400).json({ error: 'This invoice has no client email address. Add one before sending.' });
     }
+    const ccEmails = sanitizeCcEmails(req.body?.ccEmails);
     const settings = await getSettings();
     const pdfBuffer = await renderInvoicePdf(invoice, settings);
-    await sendInvoiceEmail({ toEmail: invoice.clientEmail, invoice, companySettings: settings, pdfBuffer });
+    await sendInvoiceEmail({ toEmail: invoice.clientEmail, ccEmails, invoice, companySettings: settings, pdfBuffer });
 
     const now = new Date().toISOString();
     await updateRowById('Invoices', 0, invoice.id, { status: 'Sent', sentAt: now });
-    res.json({ success: true, sentAt: now });
+    res.json({ success: true, sentAt: now, ccEmails });
   } catch (err) {
     console.error('POST /invoices/:id/send failed:', err);
     res.status(500).json({ error: err.message || 'Could not send invoice.' });
