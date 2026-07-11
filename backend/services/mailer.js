@@ -253,4 +253,4 @@ ${companyName}`;
   });
 }
 
-export default getTransporter;
+// Automated payment reminder â
