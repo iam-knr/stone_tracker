@@ -18,6 +18,7 @@ import Quotes from './pages/Quotes.jsx';
 import QuoteEditor from './pages/QuoteEditor.jsx';
 import QuoteView from './pages/QuoteView.jsx';
 import Items from './pages/Items.jsx';
+import CustomFieldsAdmin from './pages/CustomFieldsAdmin.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -45,6 +46,7 @@ export default function App() {
       <Route path="/project/:id" element={<Private><ProjectBoard /></Private>} />
       <Route path="/admin/users" element={<Private><AdminOnly><AdminUsers /></AdminOnly></Private>} />
       <Route path="/admin/deleted-items" element={<Private><AdminOnly><DeletedItems /></AdminOnly></Private>} />
+      <Route path="/admin/custom-fields" element={<Private><AdminOnly><CustomFieldsAdmin /></AdminOnly></Private>} />
       <Route path="/invoices" element={<Private><InvoiceAccessOnly><Invoices /></InvoiceAccessOnly></Private>} />
       <Route path="/invoices/new" element={<Private><InvoiceAccessOnly><InvoiceEditor /></InvoiceAccessOnly></Private>} />
       <Route path="/invoices/:id" element={<Private><InvoiceAccessOnly><InvoiceView /></InvoiceAccessOnly></Private>} />
