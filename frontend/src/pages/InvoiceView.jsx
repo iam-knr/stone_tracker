@@ -13,6 +13,42 @@ const STATUS_COLORS = {
   Overdue: 'bg-red-50 text-google-red',
 };
 
+// Small confirm-and-send modal. CC is entirely optional — a plain text
+// field the user can leave blank, with comma-separated addresses split up
+// server-side. Doesn't block sending if left empty or if an address in it
+// looks malformed (those get silently dropped, not hard-rejected).
+function SendInvoiceModal({ invoice, sending, onClose, onConfirm }) {
+  const [cc, setCc] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-30 animate-fade-in">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6">
+        <h2 className="text-lg font-medium mb-1">Send Invoice</h2>
+        <p className="text-sm text-gray-500 mb-4">To: {invoice.clientEmail}</p>
+        <label className="block text-xs text-gray-500 mb-1">CC (optional)</label>
+        <input
+          value={cc}
+          onChange={(e) => setCc(e.target.value)}
+          placeholder="e.g. accounts@client.com, manager@client.com"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-1 text-sm"
+        />
+        <p className="text-[11px] text-gray-400 mb-4">Separate multiple addresses with commas. Leave blank to send to the client only.</p>
+        <div className="flex gap-3">
+          <button type="button" onClick={onClose} className="w-1/2 py-2 rounded-full border border-gray-300 text-gray-600 hover-lift">Cancel</button>
+          <button
+            type="button"
+            disabled={sending}
+            onClick={() => onConfirm(cc)}
+            className="w-1/2 py-2 rounded-full bg-indigo-600 text-white font-medium btn-modern disabled:opacity-60"
+          >
+            {sending ? 'Sending…' : 'Send'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function InvoiceView() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,6 +57,7 @@ export default function InvoiceView() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
 
   async function load() {
     const [{ data: inv }, { data: s }] = await Promise.all([
@@ -32,13 +69,18 @@ export default function InvoiceView() {
   }
   useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, [id]);
 
-  async function handleSend() {
+  function handleOpenSend() {
     if (!invoice.clientEmail) return alert('Add a client email address before sending (Edit invoice).');
-    if (!window.confirm(`Send this invoice to ${invoice.clientEmail}?`)) return;
+    setShowSendModal(true);
+  }
+
+  async function handleConfirmSend(ccInput) {
     setSending(true);
     try {
-      await api.post(`/invoices/${id}/send`);
+      const ccEmails = ccInput.split(',').map((e) => e.trim()).filter(Boolean);
+      await api.post(`/invoices/${id}/send`, { ccEmails });
       await load();
+      setShowSendModal(false);
       alert('Invoice sent.');
     } catch (err) {
       alert(err?.response?.data?.error || 'Could not send invoice.');
@@ -106,7 +148,7 @@ export default function InvoiceView() {
           <button onClick={handleDownload} disabled={downloading} className="text-sm font-medium text-gray-500 border border-gray-200 px-3.5 py-2 rounded-full hover:border-indigo-200 hover:text-indigo-600 transition-colors disabled:opacity-60">
             {downloading ? 'Preparing…' : 'Download PDF'}
           </button>
-          <button onClick={handleSend} disabled={sending} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-full shadow-card btn-modern disabled:opacity-60">
+          <button onClick={handleOpenSend} disabled={sending} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-full shadow-card btn-modern disabled:opacity-60">
             {sending ? 'Sending…' : 'Send to Client'}
           </button>
           <button onClick={handleDelete} className="text-sm font-medium text-google-red px-3.5 py-2 rounded-full hover:bg-red-50 transition-colors">Delete</button>
@@ -201,6 +243,15 @@ export default function InvoiceView() {
           <p className="text-[11px] text-gray-300 mt-6">Sent {new Date(invoice.sentAt).toLocaleString()}</p>
         )}
       </div>
+
+      {showSendModal && (
+        <SendInvoiceModal
+          invoice={invoice}
+          sending={sending}
+          onClose={() => setShowSendModal(false)}
+          onConfirm={handleConfirmSend}
+        />
+      )}
     </DashboardShell>
   );
 }
