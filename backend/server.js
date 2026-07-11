@@ -15,6 +15,7 @@ import quoteRoutes from './routes/quotes.js';
 import itemRoutes from './routes/items.js';
 import customFieldRoutes from './routes/customFields.js';
 import reportRoutes from './routes/reports.js';
+import portalRoutes from './routes/portal.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use('/api', quoteRoutes);
 app.use('/api', itemRoutes);
 app.use('/api', customFieldRoutes);
 app.use('/api', reportRoutes);
+app.use('/api', portalRoutes);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
