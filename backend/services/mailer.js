@@ -307,4 +307,26 @@ ${companyName}`;
   });
 }
 
+// Customer Portal magic-link sign-in email. Deliberately uses the generic
+// send() helper (silently no-ops if email isn't configured, never throws)
+// rather than the throwing style used by sendInvoiceEmail/sendQuoteEmail -
+// the /portal/request-link route always returns the same generic response
+// regardless of whether the email actually exists or the send succeeds, to
+// avoid leaking which email addresses have portal access (same
+// anti-enumeration pattern as the internal password-reset flow).
+export async function sendPortalMagicLinkEmail(toEmail, { contactName, link, companyName }) {
+  await send({
+    to: toEmail,
+    subject: `Sign in to your ${companyName || 'Stone Tracker'} client portal`,
+    text: `Hi ${contactName || ''},\n\nUse this link to sign in to your client portal (expires in 15 minutes): ${link}\n\nIf you didn't request this, you can safely ignore this email.`,
+    html: wrap('Sign in to your client portal', `
+      <p>Hi ${contactName || ''},</p>
+      <p style="margin:24px 0;">
+        <a href="${link}" style="background:#1a73e8;color:#fff;text-decoration:none;padding:10px 20px;border-radius:24px;display:inline-block;">Sign In</a>
+      </p>
+      <p style="color:#5f6368;font-size:13px;">This link expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
+    `),
+  });
+}
+
 export default getTransporter;

@@ -20,6 +20,8 @@ const TABLE_MAP = {
   Items: 'items_catalog',
   Quotes: 'quotes',
   CustomFieldDefs: 'custom_field_defs',
+  PortalMagicLinks: 'portal_magic_links',
+  TaskComments: 'task_comments',
 };
 
 export async function readSheet(tabName) {
