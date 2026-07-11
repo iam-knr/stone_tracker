@@ -16,6 +16,10 @@ const TABLE_MAP = {
   Tasks: 'tasks',
   Invoices: 'invoices',
   InvoiceSettings: 'invoice_settings',
+  Contacts: 'contacts',
+  Items: 'items_catalog',
+  Quotes: 'quotes',
+  CustomFieldDefs: 'custom_field_defs',
 };
 
 export async function readSheet(tabName) {
