@@ -29,3 +29,16 @@ export function requireInvoiceAccess(req, res, next) {
   }
   return res.status(403).json({ error: 'You do not have access to Invoices. Ask your Super Admin to grant access.' });
 }
+
+// Customer Portal sessions are a completely separate track from internal
+// users - the JWT is issued to a contactId after a magic-link verification
+// (see routes/portal.js), never to an internal username. Kept as its own
+// role check (rather than reusing requireInvoiceAccess/requireAdmin) so a
+// portal session can never accidentally satisfy an internal-only route, and
+// vice versa.
+export function requirePortalClient(req, res, next) {
+  if (req.user?.role !== 'portal_client' || !req.user?.contactId) {
+    return res.status(403).json({ error: 'Portal access required.' });
+  }
+  next();
+}
