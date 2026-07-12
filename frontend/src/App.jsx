@@ -4,6 +4,12 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Projects from './pages/Projects.jsx';
+import PortalLogin from './pages/portal/PortalLogin.jsx';
+import PortalVerify from './pages/portal/PortalVerify.jsx';
+import PortalDashboard from './pages/portal/PortalDashboard.jsx';
+import PortalProjectView from './pages/portal/PortalProjectView.jsx';
+import PortalInvoices from './pages/portal/PortalInvoices.jsx';
+import PortalQuotes from './pages/portal/PortalQuotes.jsx';
 import Tasks from './pages/Tasks.jsx';
 import Settings from './pages/Settings.jsx';
 import ProjectBoard from './pages/ProjectBoard.jsx';
@@ -58,6 +64,12 @@ export default function App() {
       <Route path="/quotes/new" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
       <Route path="/quotes/:id" element={<Private><InvoiceAccessOnly><QuoteView /></InvoiceAccessOnly></Private>} />
       <Route path="/quotes/:id/edit" element={<Private><InvoiceAccessOnly><QuoteEditor /></InvoiceAccessOnly></Private>} />
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route path="/portal/verify" element={<PortalVerify />} />
+      <Route path="/portal" element={<PortalDashboard />} />
+      <Route path="/portal/projects/:id" element={<PortalProjectView />} />
+      <Route path="/portal/invoices" element={<PortalInvoices />} />
+      <Route path="/portal/quotes" element={<PortalQuotes />} />
       <Route path="/items" element={<Private><InvoiceAccessOnly><Items /></InvoiceAccessOnly></Private>} />
       <Route path="/reports" element={<Private><InvoiceAccessOnly><Reports /></InvoiceAccessOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
