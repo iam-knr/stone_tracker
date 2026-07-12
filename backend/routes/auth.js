@@ -40,8 +40,9 @@ router.post('/login', async (req, res) => {
       if (match) {
         const role = dbUser.role || 'task_assignee';
         const canAccessInvoices = dbUser.canAccessInvoices === true;
-        const token = jwt.sign({ username: dbUser.username, role, id: dbUser.id, canAccessInvoices }, process.env.JWT_SECRET, { expiresIn: '8h' });
-        return res.json({ token, role, username: dbUser.username, canAccessInvoices });
+        const canAccessBusinessHealth = dbUser.canAccessBusinessHealth === true;
+        const token = jwt.sign({ username: dbUser.username, role, id: dbUser.id, canAccessInvoices, canAccessBusinessHealth }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ token, role, username: dbUser.username, canAccessInvoices, canAccessBusinessHealth });
       }
     }
 
@@ -75,8 +76,8 @@ router.post('/login', async (req, res) => {
         }, HEADERS);
       }
 
-      const token = jwt.sign({ username: adminUsername, role: 'admin', id: adminId, canAccessInvoices: true }, process.env.JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, role: 'admin', username: adminUsername, canAccessInvoices: true });
+      const token = jwt.sign({ username: adminUsername, role: 'admin', id: adminId, canAccessInvoices: true, canAccessBusinessHealth: true }, process.env.JWT_SECRET, { expiresIn: '8h' });
+      return res.json({ token, role: 'admin', username: adminUsername, canAccessInvoices: true, canAccessBusinessHealth: true });
     }
 
     return res.status(401).json({ error: 'Invalid credentials' });

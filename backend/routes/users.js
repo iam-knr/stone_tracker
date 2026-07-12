@@ -159,6 +159,24 @@ router.put('/:id/invoice-access', verifyToken, requireAdmin, async (req, res) =>
   }
 });
 
+// Admin (Super Admin): grant or revoke a user's access to the Business
+// Health dashboard. Same independent-of-role pattern as invoice access —
+// the Super Admin always has access regardless of this flag, and any
+// other user needs it explicitly granted.
+router.put('/:id/business-health-access', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { canAccessBusinessHealth } = req.body;
+    if (typeof canAccessBusinessHealth !== 'boolean') {
+      return res.status(400).json({ error: '"canAccessBusinessHealth" must be true or false.' });
+    }
+    await updateRowById('Users', 0, req.params.id, { canAccessBusinessHealth });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PUT /users/:id/business-health-access failed:', err);
+    res.status(500).json({ error: 'Could not update Business Health access.' });
+  }
+});
+
 // Admin (Super Admin): change a user's email address
 router.put('/:id/email', verifyToken, requireAdmin, async (req, res) => {
   try {
