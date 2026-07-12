@@ -131,7 +131,7 @@ export default function PortalProjectView() {
           <div className="space-y-3">
             {tasks.map((t) => (
               <div key={t.id} className="border border-gray-100 rounded-lg p-3">
-                <p className="text-sm font-medium text-gray-800">{t.title || t.name}</p>
+                <p className="text-sm font-medium text-gray-800">{t.taskName || t.title || t.name}</p>
                 <p className="text-xs text-gray-400">{t.status}</p>
                 <TaskComments taskId={t.id} canComment={canComment} />
               </div>
