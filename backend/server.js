@@ -17,6 +17,7 @@ import customFieldRoutes from './routes/customFields.js';
 import reportRoutes from './routes/reports.js';
 import portalRoutes from './routes/portal.js';
 import businessHealthRoutes from './routes/businessHealth.js';
+import recurringInvoiceRoutes from './routes/recurringInvoices.js';
 
 dotenv.config();
 
@@ -93,6 +94,7 @@ app.use('/api', customFieldRoutes);
 app.use('/api', reportRoutes);
 app.use('/api', portalRoutes);
 app.use('/api', businessHealthRoutes);
+app.use('/api', recurringInvoiceRoutes);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
