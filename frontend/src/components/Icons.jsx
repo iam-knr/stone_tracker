@@ -219,3 +219,12 @@ export function BarChartIcon(props) {
     </svg>
   );
 }
+
+// Heartbeat/pulse-line icon used for the Business Health nav item.
+export function PulseIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 12h4l2-6 4 12 2-9 1.5 3H21" />
+    </svg>
+  );
+}
