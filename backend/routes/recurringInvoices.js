@@ -85,13 +85,15 @@ router.post('/recurring-invoices', verifyToken, requireInvoiceAccess, async (req
       return res.status(400).json({ error: 'Start date is required.' });
     }
     const now = new Date().toISOString();
+    const bodyForRow = sanitizeBody(req.body);
+    delete bodyForRow.startDate; // not a column — folded into nextRunDate below
     const row = {
       id: Date.now().toString(),
       status: 'Active',
       createdBy: req.user?.username || 'unknown',
       createdAt: now,
       nextRunDate: startDate,
-      ...sanitizeBody(req.body),
+      ...bodyForRow,
     };
     await appendRow('RecurringInvoices', row);
     res.json({ success: true, id: row.id });
@@ -106,6 +108,7 @@ router.put('/recurring-invoices/:id', verifyToken, requireInvoiceAccess, async (
     const updates = sanitizeBody(req.body);
     delete updates.status; // status changes go through the dedicated endpoint below
     delete updates.nextRunDate; // don't let a template edit silently reschedule the series
+    delete updates.startDate; // not a column — only relevant at creation time
     await updateRowById('RecurringInvoices', 0, req.params.id, updates);
     res.json({ success: true });
   } catch (err) {
@@ -228,11 +231,4 @@ router.get('/cron/recurring-invoices', verifyCron, async (req, res) => {
       }
     }
 
-    res.json({ success: true, checked: series.length, due: due.length, generated, failed: failures.length });
-  } catch (err) {
-    console.error('GET /cron/recurring-invoices failed:', err);
-    res.status(500).json({ error: 'Recurring invoice generation failed.' });
-  }
-});
-
-export default router;
+    res.json({ success: true, checked: series.length, due: due.length, generated, failed: failures.len
