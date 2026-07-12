@@ -20,6 +20,7 @@ export default function Login() {
       localStorage.setItem('st_role', data.role);
       localStorage.setItem('st_username', data.username);
       localStorage.setItem('st_can_invoices', data.canAccessInvoices ? 'true' : 'false');
+      localStorage.setItem('st_can_business_health', data.canAccessBusinessHealth ? 'true' : 'false');
       navigate('/');
     } catch {
       setError('Invalid username/email or password. Contact your admin if you forgot your password.');

@@ -76,6 +76,15 @@ export default function AdminUsers() {
     }
   }
 
+  async function handleBusinessHealthAccessToggle(id, current) {
+    try {
+      await api.put(`/users/${id}/business-health-access`, { canAccessBusinessHealth: !current });
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Could not update Business Health access.');
+    }
+  }
+
   async function handleDelete(id, username) {
     if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return;
     try {
@@ -144,50 +153,59 @@ export default function AdminUsers() {
         {loading ? (
           <Preloader label="Loading users…" />
         ) : (
-        <div className="bg-white rounded-2xl shadow-card divide-y animate-stagger">
-          {users.map((u) => (
-            <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 transition-colors hover:bg-gray-50">
-              <div>
-                <p className="text-sm font-medium text-gray-800">{u.username} <span className="text-xs text-gray-400">({roleLabel(u.role)})</span></p>
-                {emailEditId === u.id ? (
-                  <div className="flex gap-2 mt-1">
-                    <input type="email" placeholder="email@example.com" value={emailDraft} onChange={(e) => setEmailDraft(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
-                    <button onClick={() => handleEmailSave(u.id)} className="text-xs text-indigo-600 font-medium">Save</button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400">
-                    {u.email || 'no email'}{' '}
-                    <button onClick={() => { setEmailEditId(u.id); setEmailDraft(u.email || ''); }} className="text-indigo-600 link-underline">edit</button>
-                  </p>
-                )}
+          <div className="bg-white rounded-2xl shadow-card divide-y animate-stagger">
+            {users.map((u) => (
+              <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 transition-colors hover:bg-gray-50">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{u.username} <span className="text-xs text-gray-400">({roleLabel(u.role)})</span></p>
+                  {emailEditId === u.id ? (
+                    <div className="flex gap-2 mt-1">
+                      <input type="email" placeholder="email@example.com" value={emailDraft} onChange={(e) => setEmailDraft(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
+                      <button onClick={() => handleEmailSave(u.id)} className="text-xs text-indigo-600 font-medium">Save</button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">
+                      {u.email || 'no email'}{' '}
+                      <button onClick={() => { setEmailEditId(u.id); setEmailDraft(u.email || ''); }} className="text-indigo-600 link-underline">edit</button>
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <select value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1">
+                    {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  {resetId === u.id ? (
+                    <div className="flex gap-2">
+                      <input placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
+                      <button onClick={() => handleReset(u.id)} className="text-xs text-indigo-600 font-medium">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setResetId(u.id)} className="text-xs text-indigo-600 font-medium link-underline">Reset Password</button>
+                  )}
+                  {u.role !== 'admin' && (
+                    <button
+                      onClick={() => handleInvoiceAccessToggle(u.id, u.canAccessInvoices === true)}
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${u.canAccessInvoices ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
+                      title="Grant or revoke access to the Invoices dashboard"
+                    >
+                      Invoices: {u.canAccessInvoices ? 'On' : 'Off'}
+                    </button>
+                  )}
+                  {u.role !== 'admin' && (
+                    <button
+                      onClick={() => handleBusinessHealthAccessToggle(u.id, u.canAccessBusinessHealth === true)}
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${u.canAccessBusinessHealth ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
+                      title="Grant or revoke access to the Business Health dashboard"
+                    >
+                      Business Health: {u.canAccessBusinessHealth ? 'On' : 'Off'}
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(u.id, u.username)} className="text-xs text-google-red font-medium link-underline">Delete</button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <select value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1">
-                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-                {resetId === u.id ? (
-                  <div className="flex gap-2">
-                    <input placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
-                    <button onClick={() => handleReset(u.id)} className="text-xs text-indigo-600 font-medium">Save</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setResetId(u.id)} className="text-xs text-indigo-600 font-medium link-underline">Reset Password</button>
-                )}
-                {u.role !== 'admin' && (
-                  <button
-                    onClick={() => handleInvoiceAccessToggle(u.id, u.canAccessInvoices === true)}
-                    className={`text-xs font-medium px-2 py-1 rounded-full ${u.canAccessInvoices ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
-                    title="Grant or revoke access to the Invoices dashboard"
-                  >
-                    Invoices: {u.canAccessInvoices ? 'On' : 'Off'}
-                  </button>
-                )}
-                <button onClick={() => handleDelete(u.id, u.username)} className="text-xs text-google-red font-medium link-underline">Delete</button>
-              </div>
-            </div>
-          ))}
-          {users.length === 0 && <p className="text-gray-400 text-sm text-center p-4">No users yet.</p>}
-        </div>
+            ))}
+            {users.length === 0 && <p className="text-gray-400 text-sm text-center p-4">No users yet.</p>}
+          </div>
         )}
       </div>
     </DashboardShell>
