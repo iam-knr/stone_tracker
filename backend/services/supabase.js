@@ -22,6 +22,7 @@ const TABLE_MAP = {
   CustomFieldDefs: 'custom_field_defs',
   PortalMagicLinks: 'portal_magic_links',
   TaskComments: 'task_comments',
+  RecurringInvoices: 'recurring_invoices',
 };
 
 export async function readSheet(tabName) {
