@@ -42,3 +42,13 @@ export function requirePortalClient(req, res, next) {
   }
   next();
 }
+
+// Business Health is the same opt-in-permission pattern as Invoices: the
+// Super Admin can grant/revoke it per-user (see PUT /users/:id/business-health-access),
+// independent of role. Admin always has access regardless of the flag.
+export function requireBusinessHealthAccess(req, res, next) {
+  if (req.user?.role === 'admin' || req.user?.canAccessBusinessHealth === true) {
+    return next();
+  }
+  return res.status(403).json({ error: 'You do not have access to Business Health. Ask your Super Admin to grant access.' });
+}
