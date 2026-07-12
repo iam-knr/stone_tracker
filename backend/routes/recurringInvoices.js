@@ -231,4 +231,11 @@ router.get('/cron/recurring-invoices', verifyCron, async (req, res) => {
       }
     }
 
-    res.json({ success: true, checked: series.length, due: due.length, generated, failed: failures.len
+    res.json({ success: true, checked: series.length, due: due.length, generated, failed: failures.length });
+  } catch (err) {
+    console.error('GET /cron/recurring-invoices failed:', err);
+    res.status(500).json({ error: 'Recurring invoice generation failed.' });
+  }
+});
+
+export default router;
