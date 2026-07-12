@@ -26,6 +26,7 @@ import QuoteView from './pages/QuoteView.jsx';
 import Items from './pages/Items.jsx';
 import CustomFieldsAdmin from './pages/CustomFieldsAdmin.jsx';
 import Reports from './pages/Reports.jsx';
+import BusinessHealth from './pages/BusinessHealth.jsx';
 
 function isAuthed() { return !!localStorage.getItem('st_token'); }
 function isAdmin() { return localStorage.getItem('st_role') === 'admin'; }
@@ -37,6 +38,12 @@ function AdminOnly({ children }) { return isAdmin() ? children : <Navigate to="/
 // set on their account at login time.
 function InvoiceAccessOnly({ children }) {
   const allowed = isAdmin() || localStorage.getItem('st_can_invoices') === 'true';
+  return allowed ? children : <Navigate to="/" />;
+}
+// Business Health is the same opt-in-permission pattern as Invoices — admin
+// always has it, everyone else needs the flag granted on their account.
+function BusinessHealthAccessOnly({ children }) {
+  const allowed = isAdmin() || localStorage.getItem('st_can_business_health') === 'true';
   return allowed ? children : <Navigate to="/" />;
 }
 
@@ -72,6 +79,7 @@ export default function App() {
       <Route path="/portal/quotes" element={<PortalQuotes />} />
       <Route path="/items" element={<Private><InvoiceAccessOnly><Items /></InvoiceAccessOnly></Private>} />
       <Route path="/reports" element={<Private><InvoiceAccessOnly><Reports /></InvoiceAccessOnly></Private>} />
+      <Route path="/business-health" element={<Private><BusinessHealthAccessOnly><BusinessHealth /></BusinessHealthAccessOnly></Private>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
