@@ -5,6 +5,7 @@ import DashboardShell from '../components/DashboardShell.jsx';
 import Preloader from '../components/Preloader.jsx';
 import { GearIcon } from '../components/Icons.jsx';
 import { computeInvoiceTotals, money } from '../utils/invoiceMath.js';
+import RecurringInvoicesPanel from './RecurringInvoicesPanel.jsx';
 
 const STATUS_COLORS = {
   Draft: 'bg-gray-100 text-gray-600',
@@ -143,6 +144,7 @@ export default function Invoices() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [tab, setTab] = useState('invoices'); // 'invoices' | 'recurring'
 
   async function load() {
     const [{ data: inv }, { data: s }] = await Promise.all([
@@ -162,50 +164,71 @@ export default function Invoices() {
       subtitle="Create, preview, and email invoices to your clients."
       actions={
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {isAdmin && tab === 'invoices' && (
             <button onClick={() => setShowSettings(true)} className="flex items-center gap-1.5 text-sm font-medium text-gray-500 border border-gray-200 px-3.5 py-2 rounded-full hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors">
               <GearIcon className="w-[15px] h-[15px]" /> Company Info
             </button>
           )}
-          <button onClick={() => navigate('/invoices/new')} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
-            <span className="text-lg leading-none">+</span> New Invoice
-          </button>
+          {tab === 'invoices' && (
+            <button onClick={() => navigate('/invoices/new')} className="bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-card btn-modern flex items-center gap-2">
+              <span className="text-lg leading-none">+</span> New Invoice
+            </button>
+          )}
         </div>
       }
     >
-      {loading ? (
-        <Preloader label="Loading invoices…" />
+      <div className="flex items-center gap-1 mb-5 bg-gray-100 rounded-full p-1 w-fit">
+        <button
+          onClick={() => setTab('invoices')}
+          className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${tab === 'invoices' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Invoices
+        </button>
+        <button
+          onClick={() => setTab('recurring')}
+          className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${tab === 'recurring' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Recurring
+        </button>
+      </div>
+
+      {tab === 'invoices' ? (
+        loading ? (
+          <Preloader label="Loading invoices…" />
+        ) : (
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                  <th className="px-5 py-3 font-medium">Invoice #</th>
+                  <th className="px-5 py-3 font-medium">Client</th>
+                  <th className="px-5 py-3 font-medium">Total</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Due</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 animate-stagger">
+                {sorted.map((inv) => {
+                  const { total } = computeInvoiceTotals(inv);
+                  return (
+                    <tr key={inv.id} onClick={() => navigate(`/invoices/${inv.id}`)} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3 font-medium text-gray-800">{inv.invoiceNumber}</td>
+                      <td className="px-5 py-3 text-gray-500">{inv.clientName}</td>
+                      <td className="px-5 py-3 text-gray-700 font-medium">{money(total, settings.currencySymbol)}</td>
+                      <td className="px-5 py-3">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || 'bg-gray-100'}`}>{inv.status || 'Draft'}</span>
+                      </td>
+                      <td className="px-5 py-3 text-gray-500">{inv.dueDate || '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {sorted.length === 0 && <p className="text-gray-400 text-sm text-center p-8">No invoices yet. Create your first one.</p>}
+          </div>
+        )
       ) : (
-        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
-                <th className="px-5 py-3 font-medium">Invoice #</th>
-                <th className="px-5 py-3 font-medium">Client</th>
-                <th className="px-5 py-3 font-medium">Total</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Due</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 animate-stagger">
-              {sorted.map((inv) => {
-                const { total } = computeInvoiceTotals(inv);
-                return (
-                  <tr key={inv.id} onClick={() => navigate(`/invoices/${inv.id}`)} className="cursor-pointer hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3 font-medium text-gray-800">{inv.invoiceNumber}</td>
-                    <td className="px-5 py-3 text-gray-500">{inv.clientName}</td>
-                    <td className="px-5 py-3 text-gray-700 font-medium">{money(total, settings.currencySymbol)}</td>
-                    <td className="px-5 py-3">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || 'bg-gray-100'}`}>{inv.status || 'Draft'}</span>
-                    </td>
-                    <td className="px-5 py-3 text-gray-500">{inv.dueDate || '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {sorted.length === 0 && <p className="text-gray-400 text-sm text-center p-8">No invoices yet. Create your first one.</p>}
-        </div>
+        <RecurringInvoicesPanel settings={settings} />
       )}
 
       {showSettings && (
